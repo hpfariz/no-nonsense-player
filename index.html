@@ -15,6 +15,7 @@
             <div class="buttons">
                 <button id="moviePlayerButton" class="active">Movie Player</button>
                 <button id="seriesPlayerButton">Series Player</button>
+                <button id="searchButton">Search Movies</button>
             </div>
             <div class="fields">
                 <input type="text" id="mediaCode" placeholder="IMDB or TMDB code">
@@ -29,5 +30,21 @@
     </main>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Check for URL parameter and set media code
+            const urlParams = new URLSearchParams(window.location.search);
+            const imdbId = urlParams.get('imdb_id');
+            if (imdbId) {
+                $('#mediaCode').val(imdbId);
+                $('#moviePlayerButton').addClass('active');
+                $('#seriesPlayerButton').removeClass('active');
+                $('#seasonNumber').addClass('hidden');
+                $('#episodeNumber').addClass('hidden');
+                refreshPlayer();
+                replaceTitle();
+            }
+        });
+    </script>
 </body>
 </html>
