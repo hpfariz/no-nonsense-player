@@ -11,23 +11,30 @@
 <body>
     <header>
         <h1 id="heading">Media Player</h1>
+        <nav>
+            <button id="searchPageButton">Search Movies</button>
+        </nav>
     </header>
     <main>
         <div class="controls">
             <div class="buttons">
                 <button id="moviePlayerButton" class="active">Movie Player</button>
                 <button id="seriesPlayerButton">Series Player</button>
-                <button id="searchButton">Search Movies</button>
             </div>
             <div class="fields">
                 <input type="text" id="mediaCode" placeholder="IMDB or TMDB code">
                 <input type="number" id="seasonNumber" placeholder="Season Number" class="hidden" value="1">
                 <input type="number" id="episodeNumber" placeholder="Episode Number" class="hidden" value="1">
+                <input type="hidden" id="mediaType">
             </div>
         </div>
         <div class="player-container">
             <div id="placeholder">There are no media</div>
             <iframe id="player" src="" allowfullscreen class="hidden"></iframe>
+        </div>
+        <div id="watchHistory" class="hidden">
+            <h2>Watch History</h2>
+            <ul id="historyList"></ul>
         </div>
     </main>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
