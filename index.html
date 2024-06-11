@@ -22,9 +22,9 @@
                 <button id="seriesPlayerButton">Series Player</button>
             </div>
             <div class="fields">
-                <input type="text" id="mediaCode" placeholder="IMDB or TMDB code">
-                <input type="number" id="seasonNumber" placeholder="Season Number" class="hidden" value="1">
-                <input type="number" id="episodeNumber" placeholder="Episode Number" class="hidden" value="1">
+                <input type="text" id="mediaCode" placeholder="IMDB code">
+                <input type="number" id="seasonNumber" placeholder="Season Number" class="hidden" value="1" min="1">
+                <input type="number" id="episodeNumber" placeholder="Episode Number" class="hidden" value="1" min="1">
                 <input type="hidden" id="mediaType">
             </div>
         </div>
@@ -33,7 +33,10 @@
             <iframe id="player" src="" allowfullscreen class="hidden"></iframe>
         </div>
         <div id="watchHistory" class="hidden">
-            <h2>Watch History</h2>
+            <div class="separate">
+                <h2>Watch History</h2>
+                <li id="clearHistory">Clear History</li>
+            </div>
             <ul id="historyList"></ul>
         </div>
     </main>

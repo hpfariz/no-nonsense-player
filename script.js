@@ -3,6 +3,8 @@ let watchHistory = [];
 let titleCurrent;
 let typeCurrent;
 
+
+
 function refreshPlayer() {
     var mediaCode = $('#mediaCode').val().trim();
     var seasonNumber = $('#seasonNumber').val().trim();
@@ -17,8 +19,9 @@ function refreshPlayer() {
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
             replaceTitle();
-            addToWatchHistory(mediaCode, typeCurrent, null, null);
-            console.log(typeCurrent)
+            if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
+                addToWatchHistory(mediaCode, typeCurrent, null, null);
+            }
             if (typeCurrent === "series") {
                 $('#seriesPlayerButton').click();
             }
@@ -31,8 +34,9 @@ function refreshPlayer() {
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
             replaceTitle();
-            addToWatchHistory(mediaCode, typeCurrent, seasonNumber, episodeNumber);
-            console.log(typeCurrent)
+            if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
+                addToWatchHistory(mediaCode, typeCurrent, seasonNumber, episodeNumber);
+            }
             if (typeCurrent === "movie") {
                 $('#moviePlayerButton').click();
             }
@@ -41,7 +45,6 @@ function refreshPlayer() {
 }
 
 function replaceTitle() {
-    console.log("replaceTitle")
     var mediaCode = $('#mediaCode').val().trim();
     var seasonNumber = $('#seasonNumber').val().trim();
     var episodeNumber = $('#episodeNumber').val().trim();
@@ -51,7 +54,7 @@ function replaceTitle() {
             url: apiUrl,
             type: 'GET',
             async: false,
-            success: function(data) {
+            success: function (data) {
                 if (data.Response === "True") {
                     var title = data.Title;
                     titleCurrent = data.Title;
@@ -67,7 +70,7 @@ function replaceTitle() {
                     $('#heading').text("Media Player");
                 }
             },
-            error: function() {
+            error: function () {
                 $('#heading').text("Media Player");
             }
         });
@@ -102,7 +105,7 @@ function addToWatchHistory(mediaCode, type, season, episode) {
 function displayWatchHistory() {
     $('#historyList').empty();
     if (watchHistory.length > 0) {
-        watchHistory.forEach(item => {
+        watchHistory.slice().reverse().forEach(item => {
             let displayText = `${item.title} (${item.mediaCode})`;
             if (item.type === 'series') {
                 let season = ("0" + item.season).slice(-2);
@@ -129,12 +132,48 @@ function loadWatchHistory() {
     }
 }
 
-$(document).ready(function() {
-    $('#searchPageButton').click(function() {
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+$(document).ready(function () {
+
+    // $(document).keydown(function (e) {
+    //     if (e.key == 123 || e.key == "F12") {
+    //         e.preventDefault();
+    //         e.stopImmediatePropagation()
+    //     }
+    //     if (e.ctrlKey && e.shiftKey && e.key == 'I') {
+    //         e.preventDefault();
+    //         e.stopImmediatePropagation()
+    //     }
+    //     if (e.ctrlKey && e.shiftKey && e.key == 'C') {
+    //         e.preventDefault();
+    //         e.stopImmediatePropagation()
+    //     }
+    //     if (e.ctrlKey && e.shiftKey && e.key == 'J') {
+    //         e.preventDefault();
+    //         e.stopImmediatePropagation()
+    //     }
+    //     if (e.ctrlKey && e.key == 'U') {
+    //         e.preventDefault();
+    //         e.stopImmediatePropagation()
+    //     }
+    // });
+
+    $('#searchPageButton').click(function () {
         window.location.href = 'search.html';
     });
 
-    $('#moviePlayerButton').click(function() {
+    $('#backToPlayer').click(function () {
+        window.location.href = 'index.html';
+    });
+
+    $('#moviePlayerButton').click(function () {
         $('#moviePlayerButton').addClass('active');
         $('#seriesPlayerButton').removeClass('active');
         $('#seasonNumber').hide();
@@ -144,7 +183,7 @@ $(document).ready(function() {
         showPlaceholder();
     });
 
-    $('#seriesPlayerButton').click(function() {
+    $('#seriesPlayerButton').click(function () {
         $('#seriesPlayerButton').addClass('active');
         $('#moviePlayerButton').removeClass('active');
         $('#seasonNumber').show();
@@ -154,14 +193,17 @@ $(document).ready(function() {
         showPlaceholder();
     });
 
-    $('#mediaCode, #seasonNumber, #episodeNumber').blur(function() {
-        refreshPlayer();
-        replaceTitle();
+    const debouncedRefreshPlayer = debounce(refreshPlayer, 300);
+    const debouncedReplaceTitle = debounce(replaceTitle, 300);
+
+    $('#mediaCode, #seasonNumber, #episodeNumber').blur(function () {
+        debouncedRefreshPlayer();
+        debouncedReplaceTitle();
     });
 
     loadWatchHistory();
 
-    $('#historyList').on('click', 'li', function() {
+    $('#historyList').on('click', 'li', function () {
         let code = $(this).data('code');
         let type = $(this).data('type');
         let season = $(this).data('season');
@@ -178,7 +220,17 @@ $(document).ready(function() {
         replaceTitle();
     });
 
-    $(window).on('load', function() {
+    $('#clearHistory').on('click', function () {
+        if (confirm('Are you sure you want to clear your watch history? The page will refresh after clearing your watch history.')) {
+            localStorage.clear();
+            location.reload();
+        } else {
+            // Do nothing!
+        }
+
+    });
+
+    $(window).on('load', function () {
         let code = $('#mediaCode').val();
         if (code) {
             refreshPlayer();
@@ -186,17 +238,17 @@ $(document).ready(function() {
         }
     });
 
+    let loading = false;
     let moviesData = [];
     let currentSearchTerm = '';
     let currentPage = 1;
     const resultsPerPage = 25;
-    let loading = false;
-    $.getJSON("movies.json", function(data) {
+    $.getJSON("movies.json", function (data) {
         moviesData = data.movies;
     });
 
     // Search functionality
-    $('#searchInput').on('keyup', function() {
+    $('#searchInput').on('keyup', debounce(function () {
         currentSearchTerm = $(this).val().toLowerCase();
         currentPage = 1; // Reset to the first page of results
         $('#searchResults').empty(); // Clear previous results
@@ -206,10 +258,10 @@ $(document).ready(function() {
         } else {
             $('#emptyState').removeClass('hidden');
         }
-    });
+    }, 300));
 
     // Scroll event for lazy loading
-    $('#searchResults').on('scroll', function() {
+    $('#searchResults').on('scroll', function () {
         if (!loading && $(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight) {
             displaySearchResults();
         }
@@ -239,5 +291,5 @@ $(document).ready(function() {
         }
         loading = false;
     }
-    
+
 });

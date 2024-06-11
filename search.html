@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Movies</title>
+    <title>Search</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
     <header>
-        <h1>Search Movies</h1>
+        <h1>Search for Media</h1>
     </header>
     <main>
+        <div id="backToPlayerDiv">
+            <button id="backToPlayer">Back to Player</button>
+        </div>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search for a movie...">
-            <div id="emptyState" class="hidden">Start typing to search for movies.</div>
+            <input type="text" id="searchInput" placeholder="Search for movies or series...">
+            <div id="emptyState" class="hidden">Type in the search bar to find media.</div>
             <div id="searchResults" class="search-results"></div>
         </div>
     </main>
