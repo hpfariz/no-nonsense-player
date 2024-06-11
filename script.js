@@ -1,3 +1,8 @@
+let watchHistory = [];
+
+let titleCurrent;
+let typeCurrent;
+
 function refreshPlayer() {
     var mediaCode = $('#mediaCode').val().trim();
     var seasonNumber = $('#seasonNumber').val().trim();
@@ -11,6 +16,12 @@ function refreshPlayer() {
             playerUrl = `https://vidsrc.pro/embed/movie/${mediaCode}`;
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
+            replaceTitle();
+            addToWatchHistory(mediaCode, typeCurrent, null, null);
+            console.log(typeCurrent)
+            if (typeCurrent === "series") {
+                $('#seriesPlayerButton').click();
+            }
         }
     } else {
         if (!mediaCode || !seasonNumber || !episodeNumber) {
@@ -19,11 +30,18 @@ function refreshPlayer() {
             playerUrl = `https://vidsrc.pro/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}`;
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
+            replaceTitle();
+            addToWatchHistory(mediaCode, typeCurrent, seasonNumber, episodeNumber);
+            console.log(typeCurrent)
+            if (typeCurrent === "movie") {
+                $('#moviePlayerButton').click();
+            }
         }
     }
 }
 
 function replaceTitle() {
+    console.log("replaceTitle")
     var mediaCode = $('#mediaCode').val().trim();
     var seasonNumber = $('#seasonNumber').val().trim();
     var episodeNumber = $('#episodeNumber').val().trim();
@@ -32,9 +50,12 @@ function replaceTitle() {
         $.ajax({
             url: apiUrl,
             type: 'GET',
+            async: false,
             success: function(data) {
                 if (data.Response === "True") {
                     var title = data.Title;
+                    titleCurrent = data.Title;
+                    typeCurrent = data.Type;
                     if ($('#moviePlayerButton').hasClass('active')) {
                         $('#heading').text(title);
                     } else {
@@ -58,32 +79,111 @@ function showPlaceholder() {
     $('#placeholder').show();
 }
 
+function addToWatchHistory(mediaCode, type, season, episode) {
+    let title = $('#heading').text();
+    if (type === 'series') {
+        season = season || 1;
+        episode = episode || 1;
+    }
+
+    // Remove existing entry if any
+    watchHistory = watchHistory.filter(item => item.mediaCode !== mediaCode || item.type !== type);
+
+    // Add new entry
+    watchHistory.push({ title, mediaCode, type, season, episode });
+
+    // Update history in local storage
+    localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
+
+    // Refresh history UI
+    displayWatchHistory();
+}
+
+function displayWatchHistory() {
+    $('#historyList').empty();
+    if (watchHistory.length > 0) {
+        watchHistory.forEach(item => {
+            let displayText = `${item.title} (${item.mediaCode})`;
+            if (item.type === 'series') {
+                let season = ("0" + item.season).slice(-2);
+                let episode = ("0" + item.episode).slice(-2);
+                displayText += ` - S${season}E${episode}`;
+            }
+            let li = $('<li>').text(displayText).attr('data-code', item.mediaCode).attr('data-type', item.type);
+            if (item.type === 'series') {
+                li.attr('data-season', item.season).attr('data-episode', item.episode);
+            }
+            $('#historyList').append(li);
+        });
+        $('#watchHistory').show();
+    } else {
+        $('#watchHistory').hide();
+    }
+}
+
+function loadWatchHistory() {
+    let storedHistory = localStorage.getItem('watchHistory');
+    if (storedHistory) {
+        watchHistory = JSON.parse(storedHistory);
+        displayWatchHistory();
+    }
+}
+
 $(document).ready(function() {
+    $('#searchPageButton').click(function() {
+        window.location.href = 'search.html';
+    });
+
     $('#moviePlayerButton').click(function() {
-        $(this).addClass('active');
+        $('#moviePlayerButton').addClass('active');
         $('#seriesPlayerButton').removeClass('active');
-        $('#seasonNumber').addClass('hidden');
-        $('#episodeNumber').addClass('hidden');
-        refreshPlayer();
-        replaceTitle();
+        $('#seasonNumber').hide();
+        $('#episodeNumber').hide();
+        $('#mediaType').val('movie');
+        $('#heading').text("Media Player");
+        showPlaceholder();
     });
 
     $('#seriesPlayerButton').click(function() {
-        $(this).addClass('active');
+        $('#seriesPlayerButton').addClass('active');
         $('#moviePlayerButton').removeClass('active');
-        $('#seasonNumber').removeClass('hidden');
-        $('#episodeNumber').removeClass('hidden');
+        $('#seasonNumber').show();
+        $('#episodeNumber').show();
+        $('#mediaType').val('series');
+        $('#heading').text("Media Player");
+        showPlaceholder();
+    });
+
+    $('#mediaCode, #seasonNumber, #episodeNumber').blur(function() {
         refreshPlayer();
         replaceTitle();
     });
 
-    $('#mediaCode, #seasonNumber, #episodeNumber').on('input', function() {
+    loadWatchHistory();
+
+    $('#historyList').on('click', 'li', function() {
+        let code = $(this).data('code');
+        let type = $(this).data('type');
+        let season = $(this).data('season');
+        let episode = $(this).data('episode');
+        $('#mediaCode').val(code);
+        if (type === 'series') {
+            $('#seasonNumber').val(season);
+            $('#episodeNumber').val(episode);
+            $('#seriesPlayerButton').click();
+        } else {
+            $('#moviePlayerButton').click();
+        }
         refreshPlayer();
         replaceTitle();
     });
 
-    $('#searchButton').click(function() {
-        window.location.href = 'search.html';
+    $(window).on('load', function() {
+        let code = $('#mediaCode').val();
+        if (code) {
+            refreshPlayer();
+            replaceTitle();
+        }
     });
 
     let moviesData = [];
@@ -140,6 +240,4 @@ $(document).ready(function() {
         loading = false;
     }
     
-    refreshPlayer(); // Initialize the state
-    replaceTitle();
 });
