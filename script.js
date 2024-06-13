@@ -48,7 +48,7 @@ function replaceTitle() {
     var seasonNumber = $('#seasonNumber').val().trim();
     var episodeNumber = $('#episodeNumber').val().trim();
     if (mediaCode) {
-        var apiUrl = "https://www.omdbapi.com/?i=" + mediaCode + "&apikey=d7985c9b";
+        var apiUrl = "https://www.omdbapi.com/?i=" + mediaCode + "&apikey=2169157";
         $.ajax({
             url: apiUrl,
             type: 'GET',
