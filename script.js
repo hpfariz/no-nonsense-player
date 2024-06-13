@@ -4,7 +4,6 @@ let titleCurrent;
 let typeCurrent;
 
 
-
 function refreshPlayer() {
     var mediaCode = $('#mediaCode').val().trim();
     var seasonNumber = $('#seasonNumber').val().trim();
@@ -15,7 +14,7 @@ function refreshPlayer() {
         if (!mediaCode) {
             showPlaceholder();
         } else {
-            playerUrl = `https://vidsrc.pro/embed/movie/${mediaCode}`;
+            playerUrl = `https://vidsrc.pro/embed/movie/${mediaCode}?uwu=kk`;
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
             replaceTitle();
@@ -30,7 +29,7 @@ function refreshPlayer() {
         if (!mediaCode || !seasonNumber || !episodeNumber) {
             showPlaceholder();
         } else {
-            playerUrl = `https://vidsrc.pro/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}`;
+            playerUrl = `https://vidsrc.pro/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?uwu=kk`;
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
             replaceTitle();
@@ -142,28 +141,28 @@ function debounce(func, wait) {
 
 $(document).ready(function () {
 
-    // $(document).keydown(function (e) {
-    //     if (e.key == 123 || e.key == "F12") {
-    //         e.preventDefault();
-    //         e.stopImmediatePropagation()
-    //     }
-    //     if (e.ctrlKey && e.shiftKey && e.key == 'I') {
-    //         e.preventDefault();
-    //         e.stopImmediatePropagation()
-    //     }
-    //     if (e.ctrlKey && e.shiftKey && e.key == 'C') {
-    //         e.preventDefault();
-    //         e.stopImmediatePropagation()
-    //     }
-    //     if (e.ctrlKey && e.shiftKey && e.key == 'J') {
-    //         e.preventDefault();
-    //         e.stopImmediatePropagation()
-    //     }
-    //     if (e.ctrlKey && e.key == 'U') {
-    //         e.preventDefault();
-    //         e.stopImmediatePropagation()
-    //     }
-    // });
+    $(document).keydown(function (e) {
+        if (e.key == 123 || e.key == "F12") {
+            e.preventDefault();
+            e.stopImmediatePropagation()
+        }
+        if (e.ctrlKey && e.shiftKey && e.key == 'I') {
+            e.preventDefault();
+            e.stopImmediatePropagation()
+        }
+        if (e.ctrlKey && e.shiftKey && e.key == 'C') {
+            e.preventDefault();
+            e.stopImmediatePropagation()
+        }
+        if (e.ctrlKey && e.shiftKey && e.key == 'J') {
+            e.preventDefault();
+            e.stopImmediatePropagation()
+        }
+        if (e.ctrlKey && e.key == 'U') {
+            e.preventDefault();
+            e.stopImmediatePropagation()
+        }
+    });
 
     $('#searchPageButton').click(function () {
         window.location.href = 'search.html';
@@ -243,7 +242,7 @@ $(document).ready(function () {
     let currentSearchTerm = '';
     let currentPage = 1;
     const resultsPerPage = 25;
-    $.getJSON("movies.json", function (data) {
+    $.getJSON("outputfile_combined_with_ratings.json", function (data) {
         moviesData = data.movies;
     });
 
@@ -279,12 +278,53 @@ $(document).ready(function () {
             resultsContainer.append('<div class="search-result-item">No movies found</div>');
         } else {
             moviesToDisplay.forEach(movie => {
-                const movieElement = `
-                    <div class="search-result-item">
-                        <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>
-                        <div>Quality: ${movie.quality}</div>
-                    </div>
-                `;
+                var movieElement = `
+                    <div class="search-result-item"><div class="search-result-item-title">
+                        <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`;
+                // movieElement = movieElement + `<a href="https://www.imdb.com/title/${movie.imdb_id}/" class="search-result-link rating" target="_blank">IMDB</a>`
+                movieElement = movieElement + `</div><div id="ratings">`
+                if (movie.ratings.length === 0) {
+                    movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
+                    movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
+                    movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
+
+                }
+                for (let i = 0; i < movie.ratings.length; i++) {
+                    if (movie.ratings[i].Source === "Internet Movie Database") {
+                        movieElement = movieElement + `<div class="center"><img width="25" src="IMDB.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
+                        if (movie.ratings.length == 1) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
+
+                        }
+                    } else if (movie.ratings[i].Source === "Rotten Tomatoes") {
+                        if (i === 0) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
+                        }
+                        var rate = parseFloat(movie.ratings[i].Value);
+                        if (rate >= 75) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="FreshTomato.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
+                        } else if (rate >= 60) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="RedTomato.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
+                        } else {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="RottenTomato.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
+                        }
+                        if (movie.ratings.length == 1) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
+
+                        }
+
+                    } else if (movie.ratings[i].Source === "Metacritic") {
+                        if (i === 0) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
+                        } else if (i === 1) {
+                            movieElement = movieElement + `<div class="center"><img width="25" src="IMDB.png"/><p class="rating">N/A</p></div>`
+                        }
+                        movieElement = movieElement + `<div class="center"><img width="25" src="Metacritic.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
+                    }
+                }
+                movieElement = movieElement + "</div></div>"
                 resultsContainer.append(movieElement);
             });
             currentPage++;
