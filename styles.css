@@ -50,12 +50,23 @@ main {
     box-sizing: border-box;
 }
 
+.center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
 .controls {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
+}
+
+.rating {
+    margin-top: 8px;
+    margin-bottom: 8px;
 }
 
 .fields {
@@ -223,12 +234,18 @@ button:not(.active):hover {
     gap: 10px;
 }
 
+.search-result-item-title {
+    display: flex;
+    flex-direction: column;
+}
+
 .search-result-item {
     background-color: #1E1E1E;
     padding: 15px;
     border-radius: 10px;
     color: #ffffff;
     transition: background-color 0.3s ease;
+    gap: 10px;
 }
 
 .search-result-item:hover {
