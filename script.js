@@ -242,7 +242,7 @@ $(document).ready(function () {
     let currentSearchTerm = '';
     let currentPage = 1;
     const resultsPerPage = 25;
-    $.getJSON("outputfile_combined_with_ratings.json", function (data) {
+    $.getJSON("movies.json", function (data) {
         moviesData = data.movies;
     });
 
