@@ -246,6 +246,25 @@ $(document).ready(function () {
         moviesData = data.movies;
     });
 
+    function normalizeString(str) {
+        return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\W_]+/g, '');
+    }
+
+    function tokenizeString(str) {
+        return str.split(/\s+/);
+    }
+
+    function searchMovies(query, movies) {
+        const normalizedQueryTokens = tokenizeString(normalizeString(query));
+
+        return movies.filter(movie => {
+            const normalizedTitle = normalizeString(movie.title);
+            const titleTokens = tokenizeString(normalizedTitle);
+
+            return normalizedQueryTokens.every(token => titleTokens.some(titleToken => titleToken.includes(token)));
+        });
+    }
+
     // Search functionality
     $('#searchInput').on('keyup', debounce(function () {
         currentSearchTerm = $(this).val().toLowerCase();
@@ -269,7 +288,7 @@ $(document).ready(function () {
     function displaySearchResults() {
         loading = true;
         const resultsContainer = $('#searchResults');
-        const filteredMovies = moviesData.filter(movie => movie.title.toLowerCase().includes(currentSearchTerm));
+        const filteredMovies = searchMovies(currentSearchTerm, moviesData);
         const start = (currentPage - 1) * resultsPerPage;
         const end = start + resultsPerPage;
         const moviesToDisplay = filteredMovies.slice(start, end);
@@ -278,11 +297,17 @@ $(document).ready(function () {
             resultsContainer.append('<div class="search-result-item">No movies found</div>');
         } else {
             moviesToDisplay.forEach(movie => {
-                var movieElement = `
-                    <div class="search-result-item"><div class="search-result-item-title">
-                        <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`;
+                var movieElement = `<div class="search-result-item"><div class="search-result-item-content">`;
+                if (movie.Poster !== "") {
+                    movieElement = movieElement + `<img class="poster" src="${movie.Poster}"/><div class="search-result-item-details>"<div class="search-result-item-title">
+                        <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`
+                } else {
+                    movieElement = movieElement + `<img class="poster" src="PosterPlaceholder.png"/><div class="search-result-item-title">
+                            <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`
+                }
+
                 // movieElement = movieElement + `<a href="https://www.imdb.com/title/${movie.imdb_id}/" class="search-result-link rating" target="_blank">IMDB</a>`
-                movieElement = movieElement + `</div><div id="ratings">`
+                movieElement = movieElement + `<div id="ratings">`
                 if (movie.ratings.length === 0) {
                     movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
                     movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
@@ -291,7 +316,7 @@ $(document).ready(function () {
                 }
                 for (let i = 0; i < movie.ratings.length; i++) {
                     if (movie.ratings[i].Source === "Internet Movie Database") {
-                        movieElement = movieElement + `<div class="center"><img width="25" src="IMDB.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
+                        movieElement = movieElement + `<div class="center"><a href="https://www.imdb.com/title/${movie.imdb_id}/" title="IMDb Rating" target="_blank"><img width="25" src="IMDB.png"/></a><p class="rating">${movie.ratings[i].Value}</p></div>`
                         if (movie.ratings.length == 1) {
                             movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
                             movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
@@ -311,9 +336,7 @@ $(document).ready(function () {
                         }
                         if (movie.ratings.length == 1) {
                             movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
-                        }
-                        if (movie.ratings.length == 2 && i === 1) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
+
                         }
 
                     } else if (movie.ratings[i].Source === "Metacritic") {
@@ -326,7 +349,7 @@ $(document).ready(function () {
                         movieElement = movieElement + `<div class="center"><img width="25" src="Metacritic.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
                     }
                 }
-                movieElement = movieElement + "</div></div>"
+                movieElement = movieElement + "</div></div></div></div>"
                 resultsContainer.append(movieElement);
             });
             currentPage++;

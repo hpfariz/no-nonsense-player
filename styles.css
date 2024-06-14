@@ -31,6 +31,7 @@ h1 {
     color: #00aaff;
     margin: 0;
     padding-left: 20px;
+    cursor: default;
 }
 
 nav {
@@ -276,4 +277,15 @@ button:not(.active):hover {
 #searchButton:hover {
     background-color: #333333;
     transform: scale(1.05);
+}
+
+.search-result-item-content {
+    display: flex;
+    gap: 10px;
+}
+
+.poster {
+    height: 132px;
+    width: 89.1px;
+    border-radius: 8px;
 }
