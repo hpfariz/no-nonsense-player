@@ -338,7 +338,7 @@ $(document).ready(function () {
                             movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
                         }
                         if (movie.ratings.length == 2 && i === 1) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="/images/EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
+                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
                         }
 
                     } else if (movie.ratings[i].Source === "Metacritic") {
