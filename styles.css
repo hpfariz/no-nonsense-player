@@ -289,3 +289,34 @@ button:not(.active):hover {
     width: 89.1px;
     border-radius: 8px;
 }
+
+/* Styling for the custom dropdown with an arrow */
+.fields select {
+    appearance: none; /* Remove default arrow in most browsers */
+    background-color: #333333; /* Same background color as input fields */
+    color: #ffffff;
+    border: 1px solid #333333;
+    padding: 10px;
+    border-radius: 5px;
+    outline: none;
+    text-align: center;
+    font-size: 1em;
+    cursor: pointer;
+    width: 100%;
+    max-width: 200px; /* Set a max width for the dropdown */
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 15px;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.fields select:focus {
+    border-color: #00aaff;
+    transform: scale(1.05);
+}
+
+/* Ensure the dropdown stays in line with other inputs */
+.fields select:hover {
+    background-color: #444444;
+}

@@ -3,45 +3,83 @@ let watchHistory = [];
 let titleCurrent;
 let typeCurrent;
 
-
 function refreshPlayer() {
     var mediaCode = $('#mediaCode').val().trim();
     var seasonNumber = $('#seasonNumber').val().trim();
     var episodeNumber = $('#episodeNumber').val().trim();
+    var sourceType = $('#sourceSelector').val();  // Get the selected source type
     var playerUrl;
 
     if ($('#moviePlayerButton').hasClass('active')) {
+        // If no media code is provided, show placeholder
         if (!mediaCode) {
             showPlaceholder();
         } else {
-            playerUrl = `https://vidsrc.pro/embed/movie/${mediaCode}?uwu=kk`;
+            console.log("movie");
+            
+            // Determine the player URL based on the selected source
+            if (sourceType === "vidsrc") {
+                playerUrl = `https://embed.su/embed/movie/${mediaCode}?uwu=kk`;
+            } else if (sourceType === "superembed") {
+                playerUrl = `https://multiembed.mov/directstream.php?video_id=${mediaCode}`;
+            }
+
+            // Set the player URL and show the player
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
+            console.log("b");
+
             replaceTitle();
+
+            // Add to watch history if the mediaCode matches an IMDB format
             if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
-                addToWatchHistory(mediaCode, typeCurrent, null, null);
+                console.log("ba");
+                console.log("added");
+                addToWatchHistory(mediaCode, "movie", null, null);
             }
+
+            // Switch to series view if typeCurrent is "series"
             if (typeCurrent === "series") {
                 $('#seriesPlayerButton').click();
             }
         }
     } else {
+        // Series handling
         if (!mediaCode || !seasonNumber || !episodeNumber) {
             showPlaceholder();
         } else {
-            playerUrl = `https://vidsrc.pro/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?uwu=kk`;
+            console.log("series");
+
+            // Determine the player URL based on the selected source
+            if (sourceType === "vidsrc") {
+                playerUrl = `https://embed.su/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?uwu=kk`;
+            } else if (sourceType === "superembed") {
+                playerUrl = `https://multiembed.mov/directstream.php?video_id=${mediaCode}&s=${seasonNumber}&e=${episodeNumber}`;
+            }
+
+            // Set the player URL and show the player
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
+            console.log("c");
+
             replaceTitle();
+
+            // Add to watch history if the mediaCode matches an IMDB format
             if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
-                addToWatchHistory(mediaCode, typeCurrent, seasonNumber, episodeNumber);
+                console.log("d");
+                console.log("added");
+                addToWatchHistory(mediaCode, "series", seasonNumber, episodeNumber);
             }
+
+            // Switch to movie view if typeCurrent is "movie"
             if (typeCurrent === "movie") {
                 $('#moviePlayerButton').click();
             }
         }
     }
 }
+
+
 
 function replaceTitle() {
     var mediaCode = $('#mediaCode').val().trim();
@@ -141,6 +179,9 @@ function debounce(func, wait) {
 
 $(document).ready(function () {
 
+    $('#searchPageButton').click(function() {
+        console.log('Search button clicked');
+    });
     $(document).keydown(function (e) {
         if (e.key == 123 || e.key == "F12") {
             e.preventDefault();
@@ -165,6 +206,7 @@ $(document).ready(function () {
     });
 
     $('#searchPageButton').click(function () {
+        console.log("klik search")
         window.location.href = 'search.html';
     });
 
@@ -190,6 +232,10 @@ $(document).ready(function () {
         $('#mediaType').val('series');
         $('#heading').text("Media Player");
         showPlaceholder();
+    });
+    
+    $('#sourceSelector').change(function() {
+        refreshPlayer();
     });
 
     const debouncedRefreshPlayer = debounce(refreshPlayer, 300);
