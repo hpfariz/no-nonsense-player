@@ -22,23 +22,22 @@ function refreshPlayer() {
                 playerUrl = `https://embed.su/embed/movie/${mediaCode}?uwu=kk`;
             } else if (sourceType === "superembed") {
                 playerUrl = `https://multiembed.mov/directstream.php?video_id=${mediaCode}`;
+            } else if (sourceType === "vidsrccc") {
+                playerUrl = `https://vidsrc.cc/v2/embed/movie/${mediaCode}?autoPlay=false`;
             }
 
-            // Set the player URL and show the player
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
             console.log("b");
 
             replaceTitle();
 
-            // Add to watch history if the mediaCode matches an IMDB format
             if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
                 console.log("ba");
                 console.log("added");
                 addToWatchHistory(mediaCode, "movie", null, null);
             }
 
-            // Switch to series view if typeCurrent is "series"
             if (typeCurrent === "series") {
                 $('#seriesPlayerButton').click();
             }
@@ -50,34 +49,33 @@ function refreshPlayer() {
         } else {
             console.log("series");
 
-            // Determine the player URL based on the selected source
             if (sourceType === "vidsrc") {
                 playerUrl = `https://embed.su/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?uwu=kk`;
             } else if (sourceType === "superembed") {
                 playerUrl = `https://multiembed.mov/directstream.php?video_id=${mediaCode}&s=${seasonNumber}&e=${episodeNumber}`;
+            } else if (sourceType === "vidsrccc") {
+                playerUrl = `https://vidsrc.cc/v2/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?autoPlay=false`;
             }
 
-            // Set the player URL and show the player
             $('#player').attr('src', playerUrl).show();
             $('#placeholder').hide();
             console.log("c");
 
             replaceTitle();
 
-            // Add to watch history if the mediaCode matches an IMDB format
             if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
                 console.log("d");
                 console.log("added");
                 addToWatchHistory(mediaCode, "series", seasonNumber, episodeNumber);
             }
 
-            // Switch to movie view if typeCurrent is "movie"
             if (typeCurrent === "movie") {
                 $('#moviePlayerButton').click();
             }
         }
     }
 }
+
 
 
 
@@ -149,10 +147,27 @@ function displayWatchHistory() {
                 let episode = ("0" + item.episode).slice(-2);
                 displayText += ` - S${season}E${episode}`;
             }
-            let li = $('<li>').text(displayText).attr('data-code', item.mediaCode).attr('data-type', item.type);
+
+            let li = $('<li>').attr('data-code', item.mediaCode).attr('data-type', item.type);
+
             if (item.type === 'series') {
                 li.attr('data-season', item.season).attr('data-episode', item.episode);
             }
+
+            let textSpan = $('<span>').text(displayText);
+            let deleteBtn = $('<button>')
+                .addClass('delete-history-item')
+                .text('X')
+                .click(function(e) {
+                    e.stopPropagation(); // Prevent triggering li's click event
+                    let code = li.data('code');
+                    let type = li.data('type');
+                    let season = li.data('season');
+                    let episode = li.data('episode');
+                    removeFromWatchHistory(code, type, season, episode);
+                });
+
+            li.append(textSpan, deleteBtn);
             $('#historyList').append(li);
         });
         $('#watchHistory').show();
@@ -160,6 +175,18 @@ function displayWatchHistory() {
         $('#watchHistory').hide();
     }
 }
+
+function removeFromWatchHistory(mediaCode, type, season, episode) {
+    if (type === 'series') {
+        watchHistory = watchHistory.filter(item => !(item.mediaCode === mediaCode && item.type === type && item.season == season && item.episode == episode));
+    } else {
+        watchHistory = watchHistory.filter(item => !(item.mediaCode === mediaCode && item.type === type));
+    }
+
+    localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
+    displayWatchHistory();
+}
+
 
 function loadWatchHistory() {
     let storedHistory = localStorage.getItem('watchHistory');

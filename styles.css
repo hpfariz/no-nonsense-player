@@ -320,3 +320,18 @@ button:not(.active):hover {
 .fields select:hover {
     background-color: #444444;
 }
+
+.delete-history-item {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.delete-history-item:hover {
+    background-color: #ff0000;
+}
