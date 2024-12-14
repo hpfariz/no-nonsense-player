@@ -25,16 +25,19 @@
                 <input type="text" id="mediaCode" placeholder="IMDB code" />
                 <input type="number" id="seasonNumber" placeholder="Season Number" class="hidden" value="1" min="1" />
                 <input type="number" id="episodeNumber" placeholder="Episode Number" class="hidden" value="1" min="1" />
+                
                 <select id="sourceSelector">
                     <option value="vidsrc">Embed.cc</option>
                     <option value="superembed">Superembed</option>
-                    <option value="vidsrccc">vidsrc.cc</option>
+                    <option value="vidsrccc">Vidsrc.cc</option>
                 </select>
+
                 <input type="hidden" id="mediaType" />
-            </div>
+            </div>            
         </div>
         <div class="player-container">
-            <div id="placeholder">There are no media</div>
+            <div id="placeholder">No media selected</div>
+            <div id="loadingIndicator" class="hidden">Loading...</div>
             <iframe id="player" src="" allowfullscreen class="hidden"></iframe>
         </div>
         <div id="watchHistory" class="hidden">
@@ -45,10 +48,12 @@
             <ul id="historyList"></ul>
         </div>
     </main>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="script.js"></script>
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
+            // Check for URL parameter and set media code
             const urlParams = new URLSearchParams(window.location.search);
             const imdbId = urlParams.get('imdb_id');
             if (imdbId) {

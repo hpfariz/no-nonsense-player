@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>No-nonsense Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>No-nonsense Player - Search</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" href="/favicon.png" />
@@ -17,8 +17,12 @@
             <button id="backToPlayer">Back to Player</button>
         </div>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Search for movies or series..." />
-            <div id="emptyState" class="hidden">Type in the search bar to find media.</div>
+            <input type="text" id="searchInput" placeholder="Search for movies or series..." autocomplete="off"/>
+            <div id="emptyState" class="">Type in the search bar to find media.</div>
+            <div class="search-status hidden">
+                <div class="spinner"></div>
+                <div class="status-text">Searching...</div>
+            </div>
             <div id="searchResults" class="search-results"></div>
         </div>
     </main>
