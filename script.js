@@ -78,7 +78,7 @@ $(document).ready(function () {
         $('main').toggleClass('theatre-mode');
         // After toggling theatre mode, scroll to the player
         $('html, body').animate({
-            scrollTop: $('iframe').offset().top
+            scrollTop: $('.separator').offset().top
         }, 500);
     });
 });
