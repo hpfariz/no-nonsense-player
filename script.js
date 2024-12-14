@@ -76,6 +76,10 @@ $(document).ready(function () {
     // Toggle theatre mode: just toggle the class on main
     $('#toggleTheatreBtn').click(function() {
         $('main').toggleClass('theatre-mode');
+        // After toggling theatre mode, scroll to the player
+        $('html, body').animate({
+            scrollTop: $('.player-container').offset().top - 20
+        }, 500);
     });
 });
 
