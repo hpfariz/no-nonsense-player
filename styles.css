@@ -57,6 +57,7 @@ main.theatre-mode {
     left: 0;
     width: 100vw !important;
     height: 100vh !important;
+    max-height: 100% !important;
     max-width: 100% !important;
     overflow: auto;
     background-color: #111111;
