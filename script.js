@@ -73,7 +73,7 @@ $(document).ready(function () {
         $('#searchResults').on('scroll', tryLoadMoreResults);
     }
 
-    // Toggle theatre mode
+    // Toggle theatre mode: just toggle the class on main
     $('#toggleTheatreBtn').click(function() {
         $('main').toggleClass('theatre-mode');
     });

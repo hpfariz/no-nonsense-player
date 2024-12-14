@@ -5,7 +5,7 @@ html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: auto;
+    overflow-x: hidden; /* Prevent horizontal scrollbar */
 }
 
 body {
@@ -24,8 +24,6 @@ header {
     background-color: #151515;
     padding: 20px 0px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    position: relative;
-    z-index: 1000;
 }
 
 h1 {
@@ -41,6 +39,7 @@ nav {
     padding-right: 20px;
 }
 
+/* Default main container with max width */
 main {
     width: 100%;
     max-width: 1200px;
@@ -52,44 +51,11 @@ main {
     box-sizing: border-box;
 }
 
+/* Theatre mode: mimic YouTube's by making main wider and centering player */
 main.theatre-mode {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: #111111;
-    overflow: hidden; /* No scrollbars */
-    z-index: 9999;
-    padding: 0; 
-}
-
-main.theatre-mode .player-container {
-    position: absolute;
-    /* Reserve 80px for the header */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* We will fit the player by the available height first:
-       max-height: (100vh - 80px), aspect ratio 16:9 means width = height*(16/9).
-       Check both dimensions and ensure no overflow. */
-    aspect-ratio: 16/9;
-    max-height: calc(100vh - 80px);
-    max-width: calc((100vh - 80px) * (16/9));
-    width: auto;
-    height: auto;
-    background-color: #1E1E1E;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-main.theatre-mode header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 10000;
+    max-width: none;
     width: 100%;
+    padding: 20px; /* Keep some padding */
 }
 
 .center {
@@ -123,35 +89,22 @@ main.theatre-mode header {
     flex-wrap: wrap;
 }
 
-input {
-    padding: 10px;
-    border: 1px solid #333333;
-    border-radius: 5px;
-    background-color: #333333;
-    color: #ffffff;
-    outline: none;
-    transition: border-color 0.3s ease, transform 0.3s ease;
-    text-align: center;
-}
-
-input:focus {
-    border-color: #00aaff;
-    transform: scale(1.05);
-}
-
-.hidden {
-    display: none;
-}
-
-/* Normal mode player container */
+/* Player container base styles */
 .player-container {
     width: 100%;
     aspect-ratio: 16/9;
     background-color: #1E1E1E;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     position: relative;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* In theatre mode, make player wider like YouTube does */
+main.theatre-mode .player-container {
+    width: 90%;        /* take up most of the screen width */
+    max-width: 2000px; /* a large max width for very wide screens */
+    margin: 0 auto;    /* center it horizontally */
 }
 
 #placeholder {
