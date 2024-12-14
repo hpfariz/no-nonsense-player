@@ -11,11 +11,9 @@ $(document).ready(function () {
     initLocalStorage();
     loadWatchHistory();
     restoreSourceSelection();
-
-    // Disable certain dev keys
     blockDevToolsKeys();
 
-    // Event listeners
+    // Navigation buttons
     $('#searchPageButton').click(() => window.location.href = 'search.html');
     $('#backToPlayer').click(() => window.location.href = 'index.html');
 
@@ -37,8 +35,8 @@ $(document).ready(function () {
         replaceTitle();
     }, 300));
 
+    // History item load and delete
     $('#historyList').on('click', 'li', function (e) {
-        // Clicking on li itself loads that history item
         if (!$(e.target).hasClass('delete-history-item')) {
             loadHistoryItem($(this));
         }
@@ -67,12 +65,13 @@ $(document).ready(function () {
         }
     });
 
-    // Load movies data for search page
+    // If on search page, load data and attach search events
     if (window.location.pathname.includes('search.html')) {
         $.getJSON("movies.json", function (data) {
             moviesData = data.movies;
         });
 
+        // Trigger search on input
         $('#searchInput').on('input', debounce(handleSearchInput, 300));
         $('#searchResults').on('scroll', tryLoadMoreResults);
     }
@@ -99,7 +98,6 @@ function refreshPlayer() {
 
         replaceTitle();
         if (isValidImdbCode(mediaCode)) addToWatchHistory(mediaCode, "movie");
-
         if (typeCurrent === "series") $('#seriesPlayerButton').click();
     } else {
         // Series view
@@ -114,7 +112,6 @@ function refreshPlayer() {
 
         replaceTitle();
         if (isValidImdbCode(mediaCode)) addToWatchHistory(mediaCode, "series", seasonNumber, episodeNumber);
-
         if (typeCurrent === "movie") $('#moviePlayerButton').click();
     }
 }
@@ -165,7 +162,6 @@ function getPlayerUrl(source, type, code, season, episode) {
         hideLoadingIndicator();
     });
 
-    // Construct URL based on source and type
     if (type === 'movie') {
         if (source === "vidsrc") {
             return `https://embed.su/embed/movie/${code}?uwu=kk`;
@@ -238,9 +234,9 @@ function displayWatchHistory() {
 
             let displayText = `${item.title} (${item.mediaCode})`;
             if (item.type === 'series') {
-                let season = ("0" + item.season).slice(-2);
-                let episode = ("0" + item.episode).slice(-2);
-                displayText += ` - S${season}E${episode}`;
+                let s = ("0" + item.season).slice(-2);
+                let e = ("0" + item.episode).slice(-2);
+                displayText += ` - S${s}E${e}`;
             }
 
             let textSpan = $('<span>').text(displayText);
@@ -300,60 +296,77 @@ function handleSearchInput() {
     currentSearchTerm = $('#searchInput').val().toLowerCase().trim();
     currentPage = 1;
     $('#searchResults').empty();
+
     if (currentSearchTerm) {
+        // User typed something, hide empty state, show searching status while loading
         $('#emptyState').addClass('hidden');
-        $('.search-status').removeClass('hidden');
+        // We'll show the spinner inside displaySearchResults to ensure we only show it when needed
         displaySearchResults();
     } else {
+        // User cleared the input, show empty state, hide search status
         $('.search-status').addClass('hidden');
         $('#emptyState').removeClass('hidden');
     }
 }
 
-function tryLoadMoreResults() {
-    if (!loading && $(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight - 10) {
-        displaySearchResults();
-    }
-}
-
 function displaySearchResults() {
-    loading = true;
-    const resultsContainer = $('#searchResults');
+    if (!currentSearchTerm) {
+        return;
+    }
 
+    loading = true;
+    // Show spinner since we have a search term and are about to fetch results
+    $('.search-status').removeClass('hidden');
+
+    const resultsContainer = $('#searchResults');
     const filteredMovies = searchMovies(currentSearchTerm, moviesData);
     const start = (currentPage - 1) * resultsPerPage;
     const end = start + resultsPerPage;
     const moviesToDisplay = filteredMovies.slice(start, end);
 
     if (moviesToDisplay.length === 0 && currentPage === 1) {
-        $('.search-status').addClass('hidden');
+        // No results at all
         resultsContainer.append('<div class="search-result-item">No results found</div>');
+        $('.search-status').addClass('hidden');
         loading = false;
         return;
     }
 
     let fragment = document.createDocumentFragment();
-
     moviesToDisplay.forEach(movie => {
         const movieElement = buildSearchResultElement(movie, currentSearchTerm);
         fragment.appendChild(movieElement[0]);
     });
-
     resultsContainer.append(fragment);
     currentPage++;
     loading = false;
-    if ((currentPage - 1) * resultsPerPage >= filteredMovies.length) {
-        // No more results
-        $('.search-status').addClass('hidden');
-    } else {
-        // Still results left
-        $('.search-status').addClass('hidden');
+
+    // Finished loading results, hide the spinner
+    $('.search-status').addClass('hidden');
+}
+
+function tryLoadMoreResults() {
+    if (!loading && $(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight - 10) {
+        // Attempt to load more results if available
+        if (currentSearchTerm) {
+            displaySearchResults();
+        }
     }
+}
+
+function searchMovies(query, movies) {
+    const normalizedQueryTokens = tokenizeString(normalizeString(query));
+    return movies.filter(movie => {
+        const normalizedTitle = normalizeString(movie.title);
+        const titleTokens = tokenizeString(normalizedTitle);
+        return normalizedQueryTokens.every(token =>
+            titleTokens.some(titleToken => titleToken.includes(token))
+        );
+    });
 }
 
 function buildSearchResultElement(movie, query) {
     let ratingsHtml = buildRatingsHTML(movie);
-
     let posterUrl = movie.Poster || "PosterPlaceholder.png";
     let titleWithHighlight = highlightQuery(movie.title, query);
 
@@ -409,7 +422,6 @@ function buildRatingsHTML(movie) {
         }
     });
 
-    // For rotten tomatoes icon
     let tomatoIcon = 'EmptyTomato.png';
     if (tomatoRating !== 'N/A') {
         let rate = parseFloat(tomatoRating);
@@ -439,33 +451,6 @@ function buildRatingsHTML(movie) {
             <div class="center"><img width="25" src="${metaIcon}"/><p class="rating">${metaRating}</p></div>
         </div>
     `;
-}
-
-function searchMovies(query, movies) {
-    const normalizedQueryTokens = tokenizeString(normalizeString(query));
-    return movies.filter(movie => {
-        const normalizedTitle = normalizeString(movie.title);
-        const titleTokens = tokenizeString(normalizedTitle);
-        // Check if all query tokens are found in the title
-        return normalizedQueryTokens.every(token =>
-            titleTokens.some(titleToken => titleToken.includes(token))
-        );
-    });
-}
-
-function normalizeString(str) {
-    return str.trim().toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[\W_]+/g, '');
-}
-
-function tokenizeString(str) {
-    return str.split(/\s+/);
-}
-
-function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /* ------------------- Player Switching ------------------- */
@@ -533,4 +518,19 @@ function blockDevToolsKeys() {
             e.preventDefault();
         }
     });
+}
+
+function normalizeString(str) {
+    return str.trim().toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\W_]+/g, '');
+}
+
+function tokenizeString(str) {
+    return str.split(/\s+/);
+}
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
