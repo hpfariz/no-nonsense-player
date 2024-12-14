@@ -32,7 +32,7 @@ $(document).ready(function () {
 
     $('#mediaCode, #seasonNumber, #episodeNumber').blur(debounce(function () {
         refreshPlayer();
-        replaceTitle();
+        // We don't call addToWatchHistory here; it's called after replaceTitle() fetches data
     }, 300));
 
     // History events
@@ -61,7 +61,6 @@ $(document).ready(function () {
         let code = $('#mediaCode').val();
         if (code) {
             refreshPlayer();
-            replaceTitle();
         }
     });
 
@@ -74,6 +73,11 @@ $(document).ready(function () {
         $('#searchInput').on('input', debounce(handleSearchInput, 300));
         $('#searchResults').on('scroll', tryLoadMoreResults);
     }
+
+    // Toggle full width
+    $('#toggleFullscreenBtn').click(function() {
+        $('main').toggleClass('fullwidth');
+    });
 });
 
 /* ------------------- Player Functions ------------------- */
@@ -94,9 +98,7 @@ function refreshPlayer() {
         const playerUrl = getPlayerUrl(sourceType, 'movie', mediaCode);
         $('#player').attr('src', playerUrl).show();
         $('#placeholder').hide();
-
-        // Instead of calling addToWatchHistory here, we'll do it after we know the title
-        replaceTitle(mediaCode, 'movie', null, null);
+        replaceTitle(mediaCode, 'movie');
     } else {
         // Series view
         if (!mediaCode || !seasonNumber || !episodeNumber) {
@@ -107,8 +109,6 @@ function refreshPlayer() {
         const playerUrl = getPlayerUrl(sourceType, 'series', mediaCode, seasonNumber, episodeNumber);
         $('#player').attr('src', playerUrl).show();
         $('#placeholder').hide();
-
-        // Instead of calling addToWatchHistory here, do it after we know the title
         replaceTitle(mediaCode, 'series', seasonNumber, episodeNumber);
     }
 }
@@ -135,10 +135,11 @@ function replaceTitle(mediaCode, type, seasonNumber, episodeNumber) {
                     $('#heading').text(`${data.Title} - S${s}E${e}`);
                 }
 
-                // Now we have the correct title, we can add to watch history
+                // Add to watch history after we have the correct title
                 if (isValidImdbCode(mediaCode)) {
                     addToWatchHistory(mediaCode, type, seasonNumber, episodeNumber);
                 }
+
             } else {
                 $('#heading').text("Media Player");
             }
@@ -285,7 +286,6 @@ function loadHistoryItem(li) {
         $('#moviePlayerButton').click();
     }
     refreshPlayer();
-    replaceTitle();
 }
 
 /* ------------------- Search & Lazy Loading ------------------- */
@@ -317,7 +317,6 @@ function displaySearchResults() {
     const moviesToDisplay = filteredMovies.slice(start, end);
 
     if (moviesToDisplay.length === 0 && currentPage === 1) {
-        // No results at all
         resultsContainer.append('<div class="search-result-item">No results found</div>');
         loading = false;
         return;
@@ -335,7 +334,6 @@ function displaySearchResults() {
 
 function tryLoadMoreResults() {
     if (!loading && $(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight - 10) {
-        // Attempt to load more results if available
         if (currentSearchTerm) {
             displaySearchResults();
         }

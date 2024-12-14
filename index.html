@@ -40,6 +40,9 @@
             <div id="loadingIndicator" class="hidden">Loading...</div>
             <iframe id="player" src="" allowfullscreen class="hidden"></iframe>
         </div>
+        <div class="toggle-width-container" style="margin-top: 10px;">
+            <button id="toggleFullscreenBtn">Toggle Full Width</button>
+        </div>
         <div id="watchHistory" class="hidden">
             <div class="separate">
                 <h2>Watch History</h2>
@@ -63,7 +66,7 @@
                 $('#seasonNumber').addClass('hidden');
                 $('#episodeNumber').addClass('hidden');
                 refreshPlayer();
-                replaceTitle();
+                replaceTitle('movie', imdbId); // You'd call with type and code
             }
         });
     </script>
