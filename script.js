@@ -95,9 +95,8 @@ function refreshPlayer() {
         $('#player').attr('src', playerUrl).show();
         $('#placeholder').hide();
 
-        replaceTitle();
-        if (isValidImdbCode(mediaCode)) addToWatchHistory(mediaCode, "movie");
-        if (typeCurrent === "series") $('#seriesPlayerButton').click();
+        // Instead of calling addToWatchHistory here, we'll do it after we know the title
+        replaceTitle(mediaCode, 'movie', null, null);
     } else {
         // Series view
         if (!mediaCode || !seasonNumber || !episodeNumber) {
@@ -109,17 +108,12 @@ function refreshPlayer() {
         $('#player').attr('src', playerUrl).show();
         $('#placeholder').hide();
 
-        replaceTitle();
-        if (isValidImdbCode(mediaCode)) addToWatchHistory(mediaCode, "series", seasonNumber, episodeNumber);
-        if (typeCurrent === "movie") $('#moviePlayerButton').click();
+        // Instead of calling addToWatchHistory here, do it after we know the title
+        replaceTitle(mediaCode, 'series', seasonNumber, episodeNumber);
     }
 }
 
-function replaceTitle() {
-    var mediaCode = $('#mediaCode').val().trim();
-    var seasonNumber = $('#seasonNumber').val().trim();
-    var episodeNumber = $('#episodeNumber').val().trim();
-
+function replaceTitle(mediaCode, type, seasonNumber, episodeNumber) {
     if (!mediaCode) {
         $('#heading').text("Media Player");
         return;
@@ -132,12 +126,18 @@ function replaceTitle() {
             if (data.Response === "True") {
                 titleCurrent = data.Title;
                 typeCurrent = data.Type;
-                if ($('#moviePlayerButton').hasClass('active')) {
+
+                if (type === 'movie') {
                     $('#heading').text(data.Title);
                 } else {
-                    let s = ("0" + seasonNumber).slice(-2);
-                    let e = ("0" + episodeNumber).slice(-2);
+                    let s = ("0" + (seasonNumber || 1)).slice(-2);
+                    let e = ("0" + (episodeNumber || 1)).slice(-2);
                     $('#heading').text(`${data.Title} - S${s}E${e}`);
+                }
+
+                // Now we have the correct title, we can add to watch history
+                if (isValidImdbCode(mediaCode)) {
+                    addToWatchHistory(mediaCode, type, seasonNumber, episodeNumber);
                 }
             } else {
                 $('#heading').text("Media Player");

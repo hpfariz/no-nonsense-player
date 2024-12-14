@@ -311,7 +311,7 @@ button:not(.active):hover {
 
 /* Highlighting search terms */
 .highlight {
-    background-color: #0066cc;
+    background-color: #50198d;
     padding: 2px 4px;
     border-radius: 3px;
     color: #ffffff;
