@@ -309,31 +309,6 @@ button:not(.active):hover {
     flex-shrink: 0;
 }
 
-.search-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.spinner {
-    width: 20px;
-    height: 20px;
-    border: 3px solid #333;
-    border-top: 3px solid #00aaff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-.status-text {
-    color: #00aaff;
-    font-size: 1em;
-}
-
-@keyframes spin {
-    100% { transform: rotate(360deg); }
-}
-
 /* Highlighting search terms */
 .highlight {
     background-color: #0066cc;

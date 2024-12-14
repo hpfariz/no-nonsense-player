@@ -13,7 +13,7 @@ $(document).ready(function () {
     restoreSourceSelection();
     blockDevToolsKeys();
 
-    // Navigation buttons
+    // Navigation
     $('#searchPageButton').click(() => window.location.href = 'search.html');
     $('#backToPlayer').click(() => window.location.href = 'index.html');
 
@@ -35,7 +35,7 @@ $(document).ready(function () {
         replaceTitle();
     }, 300));
 
-    // History item load and delete
+    // History events
     $('#historyList').on('click', 'li', function (e) {
         if (!$(e.target).hasClass('delete-history-item')) {
             loadHistoryItem($(this));
@@ -65,13 +65,12 @@ $(document).ready(function () {
         }
     });
 
-    // If on search page, load data and attach search events
+    // If on search page
     if (window.location.pathname.includes('search.html')) {
         $.getJSON("movies.json", function (data) {
             moviesData = data.movies;
         });
 
-        // Trigger search on input
         $('#searchInput').on('input', debounce(handleSearchInput, 300));
         $('#searchResults').on('scroll', tryLoadMoreResults);
     }
@@ -157,7 +156,6 @@ function isValidImdbCode(code) {
 }
 
 function getPlayerUrl(source, type, code, season, episode) {
-    // Hide loading once the iframe loads
     $('#player').off('load').on('load', function() {
         hideLoadingIndicator();
     });
@@ -298,13 +296,9 @@ function handleSearchInput() {
     $('#searchResults').empty();
 
     if (currentSearchTerm) {
-        // User typed something, hide empty state, show searching status while loading
         $('#emptyState').addClass('hidden');
-        // We'll show the spinner inside displaySearchResults to ensure we only show it when needed
         displaySearchResults();
     } else {
-        // User cleared the input, show empty state, hide search status
-        $('.search-status').addClass('hidden');
         $('#emptyState').removeClass('hidden');
     }
 }
@@ -315,8 +309,6 @@ function displaySearchResults() {
     }
 
     loading = true;
-    // Show spinner since we have a search term and are about to fetch results
-    $('.search-status').removeClass('hidden');
 
     const resultsContainer = $('#searchResults');
     const filteredMovies = searchMovies(currentSearchTerm, moviesData);
@@ -327,7 +319,6 @@ function displaySearchResults() {
     if (moviesToDisplay.length === 0 && currentPage === 1) {
         // No results at all
         resultsContainer.append('<div class="search-result-item">No results found</div>');
-        $('.search-status').addClass('hidden');
         loading = false;
         return;
     }
@@ -340,9 +331,6 @@ function displaySearchResults() {
     resultsContainer.append(fragment);
     currentPage++;
     loading = false;
-
-    // Finished loading results, hide the spinner
-    $('.search-status').addClass('hidden');
 }
 
 function tryLoadMoreResults() {
