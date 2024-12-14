@@ -55,7 +55,7 @@ main {
     display: flex;
     align-items: center;
     gap: 10px;
-  }
+}
 
 .controls {
     width: 100%;
@@ -105,7 +105,7 @@ input:focus {
 .player-container {
     width: 100%;
     position: relative;
-    padding-top: 56.25%; /* 16:9 Aspect Ratio */
+    padding-top: 56.25%;
     background-color: #1E1E1E;
     border-radius: 10px;
     overflow: hidden;
@@ -190,10 +190,28 @@ button:not(.active):hover {
 #historyList li {
     margin-bottom: 10px;
     cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-#historyList li:hover {
+#historyList li:hover span {
     text-decoration: underline;
+}
+
+.delete-history-item {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.delete-history-item:hover {
+    background-color: #ff0000;
 }
 
 #backToPlayerDiv {
@@ -290,10 +308,10 @@ button:not(.active):hover {
     border-radius: 8px;
 }
 
-/* Styling for the custom dropdown with an arrow */
+/* Dropdown styling */
 .fields select {
-    appearance: none; /* Remove default arrow in most browsers */
-    background-color: #333333; /* Same background color as input fields */
+    appearance: none;
+    background-color: #333333;
     color: #ffffff;
     border: 1px solid #333333;
     padding: 10px;
@@ -303,7 +321,7 @@ button:not(.active):hover {
     font-size: 1em;
     cursor: pointer;
     width: 100%;
-    max-width: 200px; /* Set a max width for the dropdown */
+    max-width: 200px;
     background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>');
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -316,22 +334,6 @@ button:not(.active):hover {
     transform: scale(1.05);
 }
 
-/* Ensure the dropdown stays in line with other inputs */
 .fields select:hover {
     background-color: #444444;
-}
-
-.delete-history-item {
-    background-color: #333333;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
-    margin-left: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.delete-history-item:hover {
-    background-color: #ff0000;
 }

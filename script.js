@@ -1,120 +1,120 @@
 let watchHistory = [];
-
 let titleCurrent;
 let typeCurrent;
+let loading = false;
+let moviesData = [];
+let currentSearchTerm = '';
+let currentPage = 1;
+const resultsPerPage = 25;
 
-function refreshPlayer() {
-    var mediaCode = $('#mediaCode').val().trim();
-    var seasonNumber = $('#seasonNumber').val().trim();
-    var episodeNumber = $('#episodeNumber').val().trim();
-    var sourceType = $('#sourceSelector').val();  // Get the selected source type
-    var playerUrl;
-
-    if ($('#moviePlayerButton').hasClass('active')) {
-        // If no media code is provided, show placeholder
-        if (!mediaCode) {
-            showPlaceholder();
-        } else {
-            console.log("movie");
-            
-            // Determine the player URL based on the selected source
-            if (sourceType === "vidsrc") {
-                playerUrl = `https://embed.su/embed/movie/${mediaCode}?uwu=kk`;
-            } else if (sourceType === "superembed") {
-                playerUrl = `https://multiembed.mov/directstream.php?video_id=${mediaCode}`;
-            } else if (sourceType === "vidsrccc") {
-                playerUrl = `https://vidsrc.cc/v2/embed/movie/${mediaCode}?autoPlay=false`;
-            }
-
-            $('#player').attr('src', playerUrl).show();
-            $('#placeholder').hide();
-            console.log("b");
-
-            replaceTitle();
-
-            if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
-                console.log("ba");
-                console.log("added");
-                addToWatchHistory(mediaCode, "movie", null, null);
-            }
-
-            if (typeCurrent === "series") {
-                $('#seriesPlayerButton').click();
-            }
-        }
-    } else {
-        // Series handling
-        if (!mediaCode || !seasonNumber || !episodeNumber) {
-            showPlaceholder();
-        } else {
-            console.log("series");
-
-            if (sourceType === "vidsrc") {
-                playerUrl = `https://embed.su/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?uwu=kk`;
-            } else if (sourceType === "superembed") {
-                playerUrl = `https://multiembed.mov/directstream.php?video_id=${mediaCode}&s=${seasonNumber}&e=${episodeNumber}`;
-            } else if (sourceType === "vidsrccc") {
-                playerUrl = `https://vidsrc.cc/v2/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?autoPlay=false`;
-            }
-
-            $('#player').attr('src', playerUrl).show();
-            $('#placeholder').hide();
-            console.log("c");
-
-            replaceTitle();
-
-            if (mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11) {
-                console.log("d");
-                console.log("added");
-                addToWatchHistory(mediaCode, "series", seasonNumber, episodeNumber);
-            }
-
-            if (typeCurrent === "movie") {
-                $('#moviePlayerButton').click();
-            }
-        }
-    }
+// Helper Functions
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
 }
 
+function isValidImdbCode(mediaCode) {
+    return mediaCode.length >= 9 && mediaCode.slice(0, 2) === "tt" && mediaCode.length <= 11;
+}
 
-
-
-function replaceTitle() {
-    var mediaCode = $('#mediaCode').val().trim();
-    var seasonNumber = $('#seasonNumber').val().trim();
-    var episodeNumber = $('#episodeNumber').val().trim();
-    if (mediaCode) {
-        var apiUrl = "https://www.omdbapi.com/?i=" + mediaCode + "&apikey=2169157";
-        $.ajax({
-            url: apiUrl,
-            type: 'GET',
-            async: false,
-            success: function (data) {
-                if (data.Response === "True") {
-                    var title = data.Title;
-                    titleCurrent = data.Title;
-                    typeCurrent = data.Type;
-                    if ($('#moviePlayerButton').hasClass('active')) {
-                        $('#heading').text(title);
-                    } else {
-                        let seasonNumberPrepended = ("0" + seasonNumber).slice(-2);
-                        let episodeNumberPrepended = ("0" + episodeNumber).slice(-2);
-                        $('#heading').text(`${title} - S${seasonNumberPrepended}E${episodeNumberPrepended}`);
-                    }
-                } else {
-                    $('#heading').text("Media Player");
-                }
-            },
-            error: function () {
-                $('#heading').text("Media Player");
-            }
-        });
+function getPlayerUrl(mediaCode, seasonNumber, episodeNumber, sourceType, isMovie) {
+    // Returns the correct URL based on type (movie/series) and source
+    if (isMovie) {
+        if (sourceType === "vidsrc") {
+            return `https://embed.su/embed/movie/${mediaCode}?uwu=kk`;
+        } else if (sourceType === "superembed") {
+            return `https://multiembed.mov/directstream.php?video_id=${mediaCode}`;
+        } else if (sourceType === "vidsrccc") {
+            return `https://vidsrc.cc/v2/embed/movie/${mediaCode}?autoPlay=false`;
+        }
+    } else {
+        if (sourceType === "vidsrc") {
+            return `https://embed.su/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?uwu=kk`;
+        } else if (sourceType === "superembed") {
+            return `https://multiembed.mov/directstream.php?video_id=${mediaCode}&s=${seasonNumber}&e=${episodeNumber}`;
+        } else if (sourceType === "vidsrccc") {
+            return `https://vidsrc.cc/v2/embed/tv/${mediaCode}/${seasonNumber}/${episodeNumber}?autoPlay=false`;
+        }
     }
+    return '';
 }
 
 function showPlaceholder() {
     $('#player').hide();
     $('#placeholder').show();
+}
+
+function refreshPlayer() {
+    const mediaCode = $('#mediaCode').val().trim();
+    const seasonNumber = $('#seasonNumber').val().trim();
+    const episodeNumber = $('#episodeNumber').val().trim();
+    const sourceType = $('#sourceSelector').val();
+    const isMovie = $('#moviePlayerButton').hasClass('active');
+
+    if (!mediaCode || (!isMovie && (!seasonNumber || !episodeNumber))) {
+        showPlaceholder();
+        return;
+    }
+
+    const playerUrl = getPlayerUrl(mediaCode, seasonNumber, episodeNumber, sourceType, isMovie);
+    if (!playerUrl) {
+        showPlaceholder();
+        return;
+    }
+
+    $('#player').attr('src', playerUrl).show();
+    $('#placeholder').hide();
+    replaceTitle();
+
+    if (isValidImdbCode(mediaCode)) {
+        addToWatchHistory(mediaCode, isMovie ? "movie" : "series", isMovie ? null : seasonNumber, isMovie ? null : episodeNumber);
+    }
+
+    // Switch view if needed
+    if (typeCurrent === "series" && isMovie) {
+        $('#seriesPlayerButton').click();
+    } else if (typeCurrent === "movie" && !isMovie) {
+        $('#moviePlayerButton').click();
+    }
+}
+
+function replaceTitle() {
+    const mediaCode = $('#mediaCode').val().trim();
+    const seasonNumber = $('#seasonNumber').val().trim();
+    const episodeNumber = $('#episodeNumber').val().trim();
+
+    if (!mediaCode) {
+        $('#heading').text("Media Player");
+        return;
+    }
+
+    const apiUrl = "https://www.omdbapi.com/?i=" + mediaCode + "&apikey=2169157";
+    $.ajax({
+        url: apiUrl,
+        type: 'GET',
+        async: false,
+        success: function (data) {
+            if (data.Response === "True") {
+                titleCurrent = data.Title;
+                typeCurrent = data.Type;
+                if ($('#moviePlayerButton').hasClass('active')) {
+                    $('#heading').text(data.Title);
+                } else {
+                    let seasonNumberPrepended = ("0" + seasonNumber).slice(-2);
+                    let episodeNumberPrepended = ("0" + episodeNumber).slice(-2);
+                    $('#heading').text(`${data.Title} - S${seasonNumberPrepended}E${episodeNumberPrepended}`);
+                }
+            } else {
+                $('#heading').text("Media Player");
+            }
+        },
+        error: function () {
+            $('#heading').text("Media Player");
+        }
+    });
 }
 
 function addToWatchHistory(mediaCode, type, season, episode) {
@@ -124,16 +124,23 @@ function addToWatchHistory(mediaCode, type, season, episode) {
         episode = episode || 1;
     }
 
-    // Remove existing entry if any
-    watchHistory = watchHistory.filter(item => item.mediaCode !== mediaCode || item.type !== type);
+    watchHistory = watchHistory.filter(item => {
+        return !(item.mediaCode === mediaCode && item.type === type && (type === 'movie' || (item.season === season && item.episode === episode)));
+    });
 
-    // Add new entry
     watchHistory.push({ title, mediaCode, type, season, episode });
-
-    // Update history in local storage
     localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
+    displayWatchHistory();
+}
 
-    // Refresh history UI
+function removeFromWatchHistory(mediaCode, type, season, episode) {
+    if (type === 'series') {
+        watchHistory = watchHistory.filter(item => !(item.mediaCode === mediaCode && item.type === type && item.season == season && item.episode == episode));
+    } else {
+        watchHistory = watchHistory.filter(item => !(item.mediaCode === mediaCode && item.type === type));
+    }
+
+    localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
     displayWatchHistory();
 }
 
@@ -148,23 +155,21 @@ function displayWatchHistory() {
                 displayText += ` - S${season}E${episode}`;
             }
 
-            let li = $('<li>').attr('data-code', item.mediaCode).attr('data-type', item.type);
+            const li = $('<li>')
+                .attr('data-code', item.mediaCode)
+                .attr('data-type', item.type);
 
             if (item.type === 'series') {
                 li.attr('data-season', item.season).attr('data-episode', item.episode);
             }
 
-            let textSpan = $('<span>').text(displayText);
-            let deleteBtn = $('<button>')
+            const textSpan = $('<span>').text(displayText);
+            const deleteBtn = $('<button>')
                 .addClass('delete-history-item')
                 .text('X')
-                .click(function(e) {
-                    e.stopPropagation(); // Prevent triggering li's click event
-                    let code = li.data('code');
-                    let type = li.data('type');
-                    let season = li.data('season');
-                    let episode = li.data('episode');
-                    removeFromWatchHistory(code, type, season, episode);
+                .click(function (e) {
+                    e.stopPropagation();
+                    removeFromWatchHistory(item.mediaCode, item.type, item.season, item.episode);
                 });
 
             li.append(textSpan, deleteBtn);
@@ -176,65 +181,117 @@ function displayWatchHistory() {
     }
 }
 
-function removeFromWatchHistory(mediaCode, type, season, episode) {
-    if (type === 'series') {
-        watchHistory = watchHistory.filter(item => !(item.mediaCode === mediaCode && item.type === type && item.season == season && item.episode == episode));
-    } else {
-        watchHistory = watchHistory.filter(item => !(item.mediaCode === mediaCode && item.type === type));
-    }
-
-    localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
-    displayWatchHistory();
-}
-
-
 function loadWatchHistory() {
-    let storedHistory = localStorage.getItem('watchHistory');
+    const storedHistory = localStorage.getItem('watchHistory');
     if (storedHistory) {
         watchHistory = JSON.parse(storedHistory);
         displayWatchHistory();
     }
 }
 
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
+function normalizeString(str) {
+    return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\W_]+/g, '');
 }
 
+function tokenizeString(str) {
+    return str.split(/\s+/);
+}
+
+function searchMovies(query, movies) {
+    const normalizedQueryTokens = tokenizeString(normalizeString(query));
+
+    return movies.filter(movie => {
+        const normalizedTitle = normalizeString(movie.title);
+        const titleTokens = tokenizeString(normalizedTitle);
+        return normalizedQueryTokens.every(token => titleTokens.some(titleToken => titleToken.includes(token)));
+    });
+}
+
+function displaySearchResults() {
+    loading = true;
+    const resultsContainer = $('#searchResults');
+    const filteredMovies = searchMovies(currentSearchTerm, moviesData);
+    const start = (currentPage - 1) * resultsPerPage;
+    const end = start + resultsPerPage;
+    const moviesToDisplay = filteredMovies.slice(start, end);
+
+    if (moviesToDisplay.length === 0 && currentPage === 1) {
+        resultsContainer.append('<div class="search-result-item">No movies found</div>');
+    } else {
+        moviesToDisplay.forEach(movie => {
+            let movieElement = `<div class="search-result-item"><div class="search-result-item-content">`;
+            if (movie.Poster !== "") {
+                movieElement += `<img class="poster" src="${movie.Poster}"/><div class="search-result-item-details"><div class="search-result-item-title"><a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`;
+            } else {
+                movieElement += `<img class="poster" src="PosterPlaceholder.png"/><div class="search-result-item-title"><a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`;
+            }
+
+            movieElement += `<div id="ratings">`;
+
+            if (movie.ratings.length === 0) {
+                movieElement += `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`;
+                movieElement += `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`;
+                movieElement += `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`;
+            }
+
+            for (let i = 0; i < movie.ratings.length; i++) {
+                const rating = movie.ratings[i];
+                if (rating.Source === "Internet Movie Database") {
+                    movieElement += `<div class="center"><a href="https://www.imdb.com/title/${movie.imdb_id}/" title="IMDb Rating" target="_blank"><img width="25" src="IMDB.png"/></a><p class="rating">${rating.Value}</p></div>`;
+                    if (movie.ratings.length === 1) {
+                        movieElement += `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`;
+                        movieElement += `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`;
+                    }
+                } else if (rating.Source === "Rotten Tomatoes") {
+                    if (i === 0) {
+                        movieElement += `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`;
+                    }
+                    const rateVal = parseFloat(rating.Value);
+                    let tomatoImg = "RottenTomato.png";
+                    if (rateVal >= 75) {
+                        tomatoImg = "FreshTomato.png";
+                    } else if (rateVal >= 60) {
+                        tomatoImg = "RedTomato.png";
+                    }
+                    movieElement += `<div class="center"><img width="25" src="${tomatoImg}"/><p class="rating">${rating.Value}</p></div>`;
+                    if (movie.ratings.length === 1) {
+                        movieElement += `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`;
+                    }
+                    if (movie.ratings.length === 2 && i === 1) {
+                        movieElement += `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`;
+                    }
+                } else if (rating.Source === "Metacritic") {
+                    if (i === 0) {
+                        movieElement += `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div><div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`;
+                    } else if (i === 1) {
+                        movieElement += `<div class="center"><img width="25" src="IMDB.png"/><p class="rating">N/A</p></div>`;
+                    }
+                    movieElement += `<div class="center"><img width="25" src="Metacritic.png"/><p class="rating">${rating.Value}</p></div>`;
+                }
+            }
+
+            movieElement += "</div></div></div></div>";
+            resultsContainer.append(movieElement);
+        });
+        currentPage++;
+    }
+    loading = false;
+}
+
+// Document Ready
 $(document).ready(function () {
-
     $('#searchPageButton').click(function() {
-        console.log('Search button clicked');
-    });
-    $(document).keydown(function (e) {
-        if (e.key == 123 || e.key == "F12") {
-            e.preventDefault();
-            e.stopImmediatePropagation()
-        }
-        if (e.ctrlKey && e.shiftKey && e.key == 'I') {
-            e.preventDefault();
-            e.stopImmediatePropagation()
-        }
-        if (e.ctrlKey && e.shiftKey && e.key == 'C') {
-            e.preventDefault();
-            e.stopImmediatePropagation()
-        }
-        if (e.ctrlKey && e.shiftKey && e.key == 'J') {
-            e.preventDefault();
-            e.stopImmediatePropagation()
-        }
-        if (e.ctrlKey && e.key == 'U') {
-            e.preventDefault();
-            e.stopImmediatePropagation()
-        }
+        window.location.href = 'search.html';
     });
 
-    $('#searchPageButton').click(function () {
-        console.log("klik search")
-        window.location.href = 'search.html';
+    $(document).keydown(function (e) {
+        // Prevent dev tools shortcuts
+        if (e.key == 123 || e.key === "F12" ||
+            (e.ctrlKey && e.shiftKey && (e.key == 'I' || e.key == 'C' || e.key == 'J')) ||
+            (e.ctrlKey && e.key == 'U')) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
     });
 
     $('#backToPlayer').click(function () {
@@ -275,31 +332,31 @@ $(document).ready(function () {
 
     loadWatchHistory();
 
-    $('#historyList').on('click', 'li', function () {
-        let code = $(this).data('code');
-        let type = $(this).data('type');
-        let season = $(this).data('season');
-        let episode = $(this).data('episode');
-        $('#mediaCode').val(code);
-        if (type === 'series') {
-            $('#seasonNumber').val(season);
-            $('#episodeNumber').val(episode);
-            $('#seriesPlayerButton').click();
-        } else {
-            $('#moviePlayerButton').click();
+    $('#historyList').on('click', 'li', function (e) {
+        // If clicked on li text (not delete button)
+        if (!$(e.target).hasClass('delete-history-item')) {
+            const code = $(this).data('code');
+            const type = $(this).data('type');
+            const season = $(this).data('season');
+            const episode = $(this).data('episode');
+            $('#mediaCode').val(code);
+            if (type === 'series') {
+                $('#seasonNumber').val(season);
+                $('#episodeNumber').val(episode);
+                $('#seriesPlayerButton').click();
+            } else {
+                $('#moviePlayerButton').click();
+            }
+            refreshPlayer();
+            replaceTitle();
         }
-        refreshPlayer();
-        replaceTitle();
     });
 
     $('#clearHistory').on('click', function () {
         if (confirm('Are you sure you want to clear your watch history? The page will refresh after clearing your watch history.')) {
             localStorage.clear();
             location.reload();
-        } else {
-            // Do nothing!
         }
-
     });
 
     $(window).on('load', function () {
@@ -310,39 +367,15 @@ $(document).ready(function () {
         }
     });
 
-    let loading = false;
-    let moviesData = [];
-    let currentSearchTerm = '';
-    let currentPage = 1;
-    const resultsPerPage = 25;
+    // Load movie data (for search functionality)
     $.getJSON("movies.json", function (data) {
         moviesData = data.movies;
     });
 
-    function normalizeString(str) {
-        return str.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\W_]+/g, '');
-    }
-
-    function tokenizeString(str) {
-        return str.split(/\s+/);
-    }
-
-    function searchMovies(query, movies) {
-        const normalizedQueryTokens = tokenizeString(normalizeString(query));
-
-        return movies.filter(movie => {
-            const normalizedTitle = normalizeString(movie.title);
-            const titleTokens = tokenizeString(normalizedTitle);
-
-            return normalizedQueryTokens.every(token => titleTokens.some(titleToken => titleToken.includes(token)));
-        });
-    }
-
-    // Search functionality
     $('#searchInput').on('keyup', debounce(function () {
         currentSearchTerm = $(this).val().toLowerCase();
-        currentPage = 1; // Reset to the first page of results
-        $('#searchResults').empty(); // Clear previous results
+        currentPage = 1;
+        $('#searchResults').empty();
         if (currentSearchTerm) {
             $('#emptyState').addClass('hidden');
             displaySearchResults();
@@ -351,85 +384,9 @@ $(document).ready(function () {
         }
     }, 300));
 
-    // Scroll event for lazy loading
     $('#searchResults').on('scroll', function () {
         if (!loading && $(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight) {
             displaySearchResults();
         }
     });
-
-    function displaySearchResults() {
-        loading = true;
-        const resultsContainer = $('#searchResults');
-        const filteredMovies = searchMovies(currentSearchTerm, moviesData);
-        const start = (currentPage - 1) * resultsPerPage;
-        const end = start + resultsPerPage;
-        const moviesToDisplay = filteredMovies.slice(start, end);
-
-        if (moviesToDisplay.length === 0 && currentPage === 1) {
-            resultsContainer.append('<div class="search-result-item">No movies found</div>');
-        } else {
-            moviesToDisplay.forEach(movie => {
-                var movieElement = `<div class="search-result-item"><div class="search-result-item-content">`;
-                if (movie.Poster !== "") {
-                    movieElement = movieElement + `<img class="poster" src="${movie.Poster}"/><div class="search-result-item-details>"<div class="search-result-item-title">
-                        <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`
-                } else {
-                    movieElement = movieElement + `<img class="poster" src="PosterPlaceholder.png"/><div class="search-result-item-title">
-                            <a href="index.html?imdb_id=${movie.imdb_id}" class="search-result-link">${movie.title}</a>`
-                }
-
-                // movieElement = movieElement + `<a href="https://www.imdb.com/title/${movie.imdb_id}/" class="search-result-link rating" target="_blank">IMDB</a>`
-                movieElement = movieElement + `<div id="ratings">`
-                if (movie.ratings.length === 0) {
-                    movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
-                    movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
-                    movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
-
-                }
-                for (let i = 0; i < movie.ratings.length; i++) {
-                    if (movie.ratings[i].Source === "Internet Movie Database") {
-                        movieElement = movieElement + `<div class="center"><a href="https://www.imdb.com/title/${movie.imdb_id}/" title="IMDb Rating" target="_blank"><img width="25" src="IMDB.png"/></a><p class="rating">${movie.ratings[i].Value}</p></div>`
-                        if (movie.ratings.length == 1) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
-
-                        }
-                    } else if (movie.ratings[i].Source === "Rotten Tomatoes") {
-                        if (i === 0) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
-                        }
-                        var rate = parseFloat(movie.ratings[i].Value);
-                        if (rate >= 75) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="FreshTomato.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
-                        } else if (rate >= 60) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="RedTomato.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
-                        } else {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="RottenTomato.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
-                        }
-                        if (movie.ratings.length == 1) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
-                        }
-                        if (movie.ratings.length == 2 && i === 1) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyMetacritic.png"/><p class="rating">N/A</p></div>`
-                        }
-
-                    } else if (movie.ratings[i].Source === "Metacritic") {
-                        if (i === 0) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyIMDB.png"/><p class="rating">N/A</p></div>`
-                            movieElement = movieElement + `<div class="center"><img width="25" src="EmptyTomato.png"/><p class="rating">N/A</p></div>`
-                        } else if (i === 1) {
-                            movieElement = movieElement + `<div class="center"><img width="25" src="IMDB.png"/><p class="rating">N/A</p></div>`
-                        }
-                        movieElement = movieElement + `<div class="center"><img width="25" src="Metacritic.png"/><p class="rating">${movie.ratings[i].Value}</p></div>`
-                    }
-                }
-                movieElement = movieElement + "</div></div></div></div>"
-                resultsContainer.append(movieElement);
-            });
-            currentPage++;
-        }
-        loading = false;
-    }
-
 });
