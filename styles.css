@@ -51,8 +51,17 @@ main {
     box-sizing: border-box;
 }
 
-main.fullwidth {
+main.theatre-mode {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
     max-width: 100% !important;
+    overflow: auto;
+    background-color: #111111;
+    z-index: 9999;
+    padding-top: 80px; /* to ensure player is visible below the header */
 }
 
 .center {

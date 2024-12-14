@@ -32,7 +32,6 @@ $(document).ready(function () {
 
     $('#mediaCode, #seasonNumber, #episodeNumber').blur(debounce(function () {
         refreshPlayer();
-        // We don't call addToWatchHistory here; it's called after replaceTitle() fetches data
     }, 300));
 
     // History events
@@ -74,9 +73,9 @@ $(document).ready(function () {
         $('#searchResults').on('scroll', tryLoadMoreResults);
     }
 
-    // Toggle full width
-    $('#toggleFullscreenBtn').click(function() {
-        $('main').toggleClass('fullwidth');
+    // Toggle theatre mode
+    $('#toggleTheatreBtn').click(function() {
+        $('main').toggleClass('theatre-mode');
     });
 });
 
