@@ -40,10 +40,22 @@
             <div id="placeholder">No media selected</div>
             <div id="loadingIndicator" class="hidden">Loading...</div>
             <iframe id="player" src="" allowfullscreen class="hidden"></iframe>
+            <div id="continueWatching" class="hidden">
+                <button id="resumePlayback">Resume from <span id="resumeTime"></span></button>
+                <button id="startOver">Start Over</button>
+            </div>
         </div>
         <div class="toggle-width-container" style="margin-top: 10px;">
             <button id="toggleTheatreBtn">Theatre Mode</button>
+            <button id="autoNextEpisode" class="hidden">Auto Next Episode: <span>ON</span></button>
         </div>
+        
+        <!-- New media info section -->
+        <div id="mediaInfoPanel" class="hidden">
+            <h2>Media Information</h2>
+            <div id="mediaInfoContent"></div>
+        </div>
+        
         <div id="watchHistory" class="hidden">
             <div class="separate">
                 <h2>Watch History</h2>
