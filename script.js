@@ -565,7 +565,7 @@ function searchMovies(query, movies) {
         .map(item => item.movie);
 }
 
-// Calculate relevance score based on multiple matching criteria
+// Calculate relevance score based on multiple matching criteria with fuzzy matching support
 function calculateRelevanceScore(title, normalizedQuery, queryTokens) {
     const titleTokens = tokenizeString(title);
     let score = 0;
@@ -606,25 +606,36 @@ function calculateRelevanceScore(title, normalizedQuery, queryTokens) {
         // Skip very short tokens (like "a", "an", "the")
         if (queryToken.length < 2) continue;
         
-        // Check for token matches
         let tokenFound = false;
         
+        // Standard matching
         for (const titleToken of titleTokens) {
             if (titleToken === queryToken) {
-                // Exact token match
                 matchedTokens += 3;
                 tokenFound = true;
                 break;
             } else if (titleToken.startsWith(queryToken)) {
-                // Title token starts with query token
                 matchedTokens += 2;
                 tokenFound = true;
                 break;
             } else if (titleToken.includes(queryToken)) {
-                // Title token contains query token
                 matchedTokens += 1;
                 tokenFound = true;
                 break;
+            }
+        }
+        
+        // Fuzzy matching for typo tolerance if exact match not found
+        if (!tokenFound) {
+            for (const titleToken of titleTokens) {
+                let distance = calculateLevenshteinDistance(queryToken, titleToken);
+                let threshold = queryToken.length <= 4 ? 1 : 2;
+                if (distance > 0 && distance <= threshold) {
+                    // Bonus score decreases as the distance increases
+                    matchedTokens += (threshold - distance + 1);
+                    tokenFound = true;
+                    break;
+                }
             }
         }
         
@@ -647,7 +658,7 @@ function calculateRelevanceScore(title, normalizedQuery, queryTokens) {
         score += proximityScore;
     }
     
-    // Penalize long titles slightly (to prioritize concise matches when scores are otherwise close)
+    // Penalize long titles slightly
     score -= Math.log(Math.max(title.length, 1)) * 0.5;
     
     return Math.max(0, score);
@@ -742,7 +753,7 @@ function extractYearFromTitle(title) {
     return { titleWithoutYear: title, year: null };
 }
 
-// Fuzzy matching for typo tolerance
+// Fuzzy matching for typo tolerance using Levenshtein distance
 function calculateLevenshteinDistance(a, b) {
     if (a.length === 0) return b.length;
     if (b.length === 0) return a.length;
@@ -785,17 +796,6 @@ function buildSearchResultElement(movie, query) {
         </div>
     `);
     return movieElement;
-}
-
-function highlightQuery(text, query) {
-    if (!query) return text;
-    const queryTokens = tokenizeString(query);
-    let highlighted = text;
-    queryTokens.forEach(token => {
-        let regex = new RegExp(`(${escapeRegex(token)})`, 'gi');
-        highlighted = highlighted.replace(regex, '<span class="highlight">$1</span>');
-    });
-    return highlighted;
 }
 
 function buildRatingsHTML(movie) {
