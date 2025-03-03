@@ -544,15 +544,226 @@ function tryLoadMoreResults() {
     }
 }
 
+// Main search function - replaces the existing searchMovies function
 function searchMovies(query, movies) {
-    const normalizedQueryTokens = tokenizeString(normalizeString(query));
-    return movies.filter(movie => {
-        const normalizedTitle = normalizeString(movie.title);
-        const titleTokens = tokenizeString(normalizedTitle);
-        return normalizedQueryTokens.every(token =>
-            titleTokens.some(titleToken => titleToken.includes(token))
-        );
+    if (!query || query.length < 2) return []; // Don't search for very short queries
+    
+    const normalizedQuery = normalizeString(query);
+    const queryTokens = tokenizeString(normalizedQuery);
+    
+    // First pass: compute relevance scores for all movies
+    const scoredMovies = movies.map(movie => {
+        const title = normalizeString(movie.title);
+        const score = calculateRelevanceScore(title, normalizedQuery, queryTokens);
+        return { movie, score };
     });
+    
+    // Filter out irrelevant results and sort by score (highest first)
+    return scoredMovies
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.movie);
+}
+
+// Calculate relevance score based on multiple matching criteria
+function calculateRelevanceScore(title, normalizedQuery, queryTokens) {
+    const titleTokens = tokenizeString(title);
+    let score = 0;
+    
+    // Exact match gets highest priority
+    if (title === normalizedQuery) {
+        return 100;
+    }
+    
+    // Title starts with query (weighted heavily)
+    if (title.startsWith(normalizedQuery)) {
+        score += 50;
+    }
+    
+    // Title contains the exact query as a substring
+    if (title.includes(normalizedQuery)) {
+        score += 30;
+    }
+    
+    // Check for word boundary matches
+    const titleWords = title.split(/\s+/);
+    for (const word of titleWords) {
+        if (word === normalizedQuery) {
+            score += 20; // Exact word match
+        }
+        
+        // Word starts with query
+        if (word.startsWith(normalizedQuery)) {
+            score += 10;
+        }
+    }
+    
+    // Count the number of query tokens found in the title
+    let matchedTokens = 0;
+    const foundTokens = new Set();
+    
+    for (const queryToken of queryTokens) {
+        // Skip very short tokens (like "a", "an", "the")
+        if (queryToken.length < 2) continue;
+        
+        // Check for token matches
+        let tokenFound = false;
+        
+        for (const titleToken of titleTokens) {
+            if (titleToken === queryToken) {
+                // Exact token match
+                matchedTokens += 3;
+                tokenFound = true;
+                break;
+            } else if (titleToken.startsWith(queryToken)) {
+                // Title token starts with query token
+                matchedTokens += 2;
+                tokenFound = true;
+                break;
+            } else if (titleToken.includes(queryToken)) {
+                // Title token contains query token
+                matchedTokens += 1;
+                tokenFound = true;
+                break;
+            }
+        }
+        
+        if (tokenFound) {
+            foundTokens.add(queryToken);
+        }
+    }
+    
+    // Add token match score
+    score += matchedTokens * 5;
+    
+    // Bonus for matching all query tokens (ensures all search terms are found)
+    if (foundTokens.size === queryTokens.filter(t => t.length >= 2).length && queryTokens.length > 0) {
+        score += 25;
+    }
+    
+    // Proximity bonus - terms that appear close together score higher
+    if (queryTokens.length > 1) {
+        const proximityScore = calculateProximityScore(title, queryTokens);
+        score += proximityScore;
+    }
+    
+    // Penalize long titles slightly (to prioritize concise matches when scores are otherwise close)
+    score -= Math.log(Math.max(title.length, 1)) * 0.5;
+    
+    return Math.max(0, score);
+}
+
+// Calculate how close search terms appear to each other in the title
+function calculateProximityScore(title, queryTokens) {
+    if (queryTokens.length <= 1) return 0;
+    
+    const positions = [];
+    
+    // Find positions of all query tokens in the title
+    for (const token of queryTokens) {
+        if (token.length < 2) continue;
+        
+        const pos = title.indexOf(token);
+        if (pos >= 0) {
+            positions.push(pos);
+        }
+    }
+    
+    if (positions.length <= 1) return 0;
+    
+    // Sort positions and calculate distance between terms
+    positions.sort((a, b) => a - b);
+    const distance = positions[positions.length - 1] - positions[0];
+    
+    // Closer terms get higher score
+    return Math.max(0, 10 - Math.min(distance / 5, 10));
+}
+
+// Enhanced tokenization with stopword removal
+function tokenizeString(str) {
+    // Remove common stopwords that add noise to search
+    const stopwords = new Set([
+        'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 
+        'be', 'been', 'being', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 
+        'about', 'of', 'as'
+    ]);
+    
+    // Split on spaces and other separators
+    return str.split(/[\s\-_.,;:!?()[\]{}'"\/\\]+/)
+        .filter(token => token.length > 0 && !stopwords.has(token.toLowerCase()));
+}
+
+// Normalize string for comparison
+function normalizeString(str) {
+    return str.trim().toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+        .replace(/[^\w\s-]/g, ''); // Keep only alphanumeric, spaces, and hyphens
+}
+
+// Enhanced highlight function that preserves original case
+function highlightQuery(text, query) {
+    if (!query || query.length < 2) return text;
+    
+    const normalizedText = text.toLowerCase();
+    const normalizedQuery = query.toLowerCase();
+    const queryTokens = normalizedQuery.split(/\s+/).filter(t => t.length >= 2);
+    
+    // First try to highlight the whole query
+    if (normalizedText.includes(normalizedQuery)) {
+        const regex = new RegExp(`(${escapeRegex(normalizedQuery)})`, 'gi');
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+    
+    // Then try to highlight individual tokens
+    let highlighted = text;
+    for (const token of queryTokens) {
+        const regex = new RegExp(`(${escapeRegex(token)})`, 'gi');
+        highlighted = highlighted.replace(regex, '<span class="highlight">$1</span>');
+    }
+    
+    return highlighted;
+}
+
+// Improved escaping function for regex
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Function to extract year from title if present (for better matching)
+function extractYearFromTitle(title) {
+    const yearMatch = title.match(/\((\d{4})\)$/);
+    if (yearMatch && yearMatch[1]) {
+        return {
+            titleWithoutYear: title.replace(/\s*\(\d{4}\)$/, '').trim(),
+            year: parseInt(yearMatch[1])
+        };
+    }
+    return { titleWithoutYear: title, year: null };
+}
+
+// Fuzzy matching for typo tolerance
+function calculateLevenshteinDistance(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    
+    const matrix = Array(a.length + 1).fill().map(() => Array(b.length + 1).fill(0));
+    
+    for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+    for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+    
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,      // deletion
+                matrix[i][j - 1] + 1,      // insertion
+                matrix[i - 1][j - 1] + cost // substitution
+            );
+        }
+    }
+    
+    return matrix[a.length][b.length];
 }
 
 function buildSearchResultElement(movie, query) {
@@ -713,19 +924,4 @@ function blockDevToolsKeys() {
             e.preventDefault();
         }
     });
-}
-
-function normalizeString(str) {
-    return str.trim().toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[\W_]+/g, '');
-}
-
-function tokenizeString(str) {
-    return str.split(/\s+/);
-}
-
-function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
