@@ -6,12 +6,14 @@ let loading = false;
 let currentSearchTerm = '';
 let currentPage = 1;
 const resultsPerPage = 25;
+let autoNextEpisodeEnabled = true; // Default auto next episode to on
 
 $(document).ready(function () {
     initLocalStorage();
     loadWatchHistory();
     restoreSourceSelection();
     blockDevToolsKeys();
+    setupMessageListener(); // Set up listener for iframe messages
 
     // Navigation
     $('#searchPageButton').click(() => window.location.href = 'search.html');
@@ -34,6 +36,45 @@ $(document).ready(function () {
         refreshPlayer();
     }, 300));
 
+    // Resume playback functionality
+    $('#resumePlayback').click(function() {
+        const progressTime = $(this).data('time');
+        const player = document.getElementById('player');
+        
+        // Send message to iframe to seek to the saved time
+        player.contentWindow.postMessage({ 
+            type: 'seekTo', 
+            time: progressTime 
+        }, '*');
+        
+        $('#continueWatching').addClass('hidden');
+    });
+
+    $('#startOver').click(function() {
+        $('#continueWatching').addClass('hidden');
+        
+        // Clear saved progress
+        const mediaCode = $('#mediaCode').val();
+        const type = $('#mediaType').val();
+        const season = $('#seasonNumber').val();
+        const episode = $('#episodeNumber').val();
+        
+        clearVideoProgress(mediaCode, type, season, episode);
+    });
+
+    // Auto Next Episode Toggle
+    $('#autoNextEpisode').click(function() {
+        autoNextEpisodeEnabled = !autoNextEpisodeEnabled;
+        $(this).find('span').text(autoNextEpisodeEnabled ? 'ON' : 'OFF');
+        localStorage.setItem('autoNextEpisode', autoNextEpisodeEnabled);
+    });
+
+    // Restore auto next episode setting
+    if (localStorage.getItem('autoNextEpisode') !== null) {
+        autoNextEpisodeEnabled = localStorage.getItem('autoNextEpisode') === 'true';
+        $('#autoNextEpisode').find('span').text(autoNextEpisodeEnabled ? 'ON' : 'OFF');
+    }
+    
     // History events
     $('#historyList').on('click', 'li', function (e) {
         if (!$(e.target).hasClass('delete-history-item')) {
@@ -83,6 +124,84 @@ $(document).ready(function () {
     });
 });
 
+/* ------------------- Video Progress Functions ------------------- */
+
+function setupMessageListener() {
+    // Listen for messages from the iframe
+    window.addEventListener('message', function(event) {
+        // Make sure to check origin for security in production
+        
+        if (event.data.type === 'videoProgress') {
+            // Save current playback position
+            const mediaCode = $('#mediaCode').val();
+            const type = $('#mediaType').val();
+            const season = $('#seasonNumber').val();
+            const episode = $('#episodeNumber').val();
+            
+            saveVideoProgress(mediaCode, type, season, episode, event.data.currentTime);
+        }
+        
+        else if (event.data.type === 'videoEnded') {
+            // Auto play next episode if enabled and in series mode
+            if (autoNextEpisodeEnabled && $('#seriesPlayerButton').hasClass('active')) {
+                let currentEpisode = parseInt($('#episodeNumber').val());
+                $('#episodeNumber').val(currentEpisode + 1);
+                refreshPlayer();
+            }
+        }
+    });
+}
+
+function saveVideoProgress(mediaCode, type, season, episode, currentTime) {
+    if (!mediaCode) return;
+    
+    const key = type === 'movie' 
+        ? `progress_${mediaCode}` 
+        : `progress_${mediaCode}_s${season}_e${episode}`;
+    
+    // Only save if we have meaningful progress (more than 10 seconds)
+    if (currentTime > 10) {
+        localStorage.setItem(key, currentTime);
+    }
+}
+
+function loadVideoProgress(mediaCode, type, season, episode) {
+    if (!mediaCode) return null;
+    
+    const key = type === 'movie' 
+        ? `progress_${mediaCode}` 
+        : `progress_${mediaCode}_s${season}_e${episode}`;
+    
+    return localStorage.getItem(key);
+}
+
+function clearVideoProgress(mediaCode, type, season, episode) {
+    if (!mediaCode) return;
+    
+    const key = type === 'movie' 
+        ? `progress_${mediaCode}` 
+        : `progress_${mediaCode}_s${season}_e${episode}`;
+    
+    localStorage.removeItem(key);
+}
+
+function checkAndDisplayResumeOption(mediaCode, type, season, episode) {
+    const progress = loadVideoProgress(mediaCode, type, season, episode);
+    
+    if (progress) {
+        // Format time for display (convert seconds to MM:SS)
+        const minutes = Math.floor(progress / 60);
+        const seconds = Math.floor(progress % 60);
+        const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        $('#resumeTime').text(formattedTime);
+        $('#resumePlayback').data('time', progress);
+        $('#continueWatching').removeClass('hidden');
+    } else {
+        $('#continueWatching').addClass('hidden');
+    }
+}
+
 /* ------------------- Player Functions ------------------- */
 
 function refreshPlayer() {
@@ -90,6 +209,10 @@ function refreshPlayer() {
     var seasonNumber = $('#seasonNumber').val().trim();
     var episodeNumber = $('#episodeNumber').val().trim();
     var sourceType = $('#sourceSelector').val();
+    
+    // Clear any previous media info
+    $('#mediaInfoPanel').addClass('hidden');
+    $('#mediaInfoContent').empty();
 
     if ($('#moviePlayerButton').hasClass('active')) {
         // Movie view
@@ -101,6 +224,17 @@ function refreshPlayer() {
         const playerUrl = getPlayerUrl(sourceType, 'movie', mediaCode);
         $('#player').attr('src', playerUrl).show();
         $('#placeholder').hide();
+        $('#mediaType').val('movie');
+        
+        // Check for resume option
+        checkAndDisplayResumeOption(mediaCode, 'movie');
+        
+        // Show movie info
+        fetchAndDisplayMediaInfo(mediaCode);
+        
+        // Hide auto next episode button for movies
+        $('#autoNextEpisode').addClass('hidden');
+        
         replaceTitle(mediaCode, 'movie');
     } else {
         // Series view
@@ -112,6 +246,17 @@ function refreshPlayer() {
         const playerUrl = getPlayerUrl(sourceType, 'series', mediaCode, seasonNumber, episodeNumber);
         $('#player').attr('src', playerUrl).show();
         $('#placeholder').hide();
+        $('#mediaType').val('series');
+        
+        // Check for resume option
+        checkAndDisplayResumeOption(mediaCode, 'series', seasonNumber, episodeNumber);
+        
+        // Show series info
+        fetchAndDisplayMediaInfo(mediaCode);
+        
+        // Show auto next episode button for series
+        $('#autoNextEpisode').removeClass('hidden');
+        
         replaceTitle(mediaCode, 'series', seasonNumber, episodeNumber);
     }
 }
@@ -153,6 +298,59 @@ function replaceTitle(mediaCode, type, seasonNumber, episodeNumber) {
     });
 }
 
+/* ------------------- Enhanced Media Info Functions ------------------- */
+
+function fetchAndDisplayMediaInfo(mediaCode) {
+    if (!isValidImdbCode(mediaCode)) return;
+    
+    $.ajax({
+        url: `https://www.omdbapi.com/?i=${mediaCode}&plot=full&apikey=2169157`,
+        type: 'GET',
+        success: function (data) {
+            if (data.Response === "True") {
+                displayMediaInfo(data);
+            }
+        },
+        error: function () {
+            console.log("Failed to fetch media info");
+        }
+    });
+}
+
+function displayMediaInfo(data) {
+    // Create a structured media info panel
+    const mediaInfoHTML = `
+        <div class="media-info-wrapper">
+            <div class="media-poster">
+                <img src="${data.Poster !== 'N/A' ? data.Poster : 'PosterPlaceholder.png'}" alt="${data.Title} Poster">
+            </div>
+            <div class="media-details">
+                <h3>${data.Title} (${data.Year})</h3>
+                <p><strong>Rating:</strong> ${data.Rated} | <strong>Runtime:</strong> ${data.Runtime}</p>
+                <p><strong>Genre:</strong> ${data.Genre}</p>
+                <p><strong>Director:</strong> ${data.Director}</p>
+                <p><strong>Actors:</strong> ${data.Actors}</p>
+                <div class="plot-section">
+                    <h4>Plot</h4>
+                    <p>${data.Plot}</p>
+                </div>
+                <div class="ratings-section">
+                    <h4>Ratings</h4>
+                    <ul>
+                        ${data.Ratings.map(rating => `<li>${rating.Source}: ${rating.Value}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="links-section">
+                    <a href="https://www.imdb.com/title/${data.imdbID}/" target="_blank" class="imdb-link">View on IMDb</a>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#mediaInfoContent').html(mediaInfoHTML);
+    $('#mediaInfoPanel').removeClass('hidden');
+}
+
 /* ------------------- Helper & Utility Functions ------------------- */
 
 function isValidImdbCode(code) {
@@ -189,11 +387,14 @@ function showPlaceholder() {
     $('#player').hide();
     $('#loadingIndicator').addClass('hidden');
     $('#placeholder').show();
+    $('#continueWatching').addClass('hidden');
+    $('#mediaInfoPanel').addClass('hidden');
 }
 
 function showLoadingIndicator() {
     $('#loadingIndicator').removeClass('hidden');
     $('#player').hide();
+    $('#continueWatching').addClass('hidden');
 }
 
 function hideLoadingIndicator() {
@@ -451,6 +652,7 @@ function switchToMoviePlayer() {
     $('#episodeNumber').hide();
     $('#mediaType').val('movie');
     $('#heading').text("Media Player");
+    $('#autoNextEpisode').addClass('hidden');
     showPlaceholder();
 }
 
@@ -461,6 +663,7 @@ function switchToSeriesPlayer() {
     $('#episodeNumber').show();
     $('#mediaType').val('series');
     $('#heading').text("Media Player");
+    $('#autoNextEpisode').removeClass('hidden');
     showPlaceholder();
 }
 
@@ -491,6 +694,9 @@ function debounce(func, wait) {
 function initLocalStorage() {
     if (!localStorage.getItem('watchHistory')) {
         localStorage.setItem('watchHistory', '[]');
+    }
+    if (localStorage.getItem('autoNextEpisode') === null) {
+        localStorage.setItem('autoNextEpisode', 'true');
     }
 }
 
